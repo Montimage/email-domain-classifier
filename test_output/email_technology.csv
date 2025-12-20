@@ -1,0 +1,41 @@
+sender,receiver,timestamp,subject,body,has_url,classified_domain,method1_domain,method2_domain
+noreply@cloudservice.tech,jane.smith@company.org,2024-01-15 10:15:00,Your Storage is Almost Full,"Hi Jane,
+
+Your cloud storage is 95% full. You're currently using 14.25 GB of your 15 GB storage limit.
+
+Upgrade to Premium for unlimited storage:
+- Unlimited cloud storage
+- Advanced sync features
+- Priority support
+
+Click below to upgrade your subscription.
+
+Best,
+CloudService Team",true,technology,technology,technology
+notifications@socialconnect.com,user123@email.com,2024-01-15 18:30:00,New Login to Your Account,"Hi there,
+
+We noticed a new login to your SocialConnect account.
+
+Device: iPhone 14
+Location: New York, NY
+Time: January 15, 2024 at 6:25 PM EST
+
+If this was you, no action is needed. If you don't recognize this activity, secure your account immediately.
+
+- SocialConnect Security",true,technology,technology,technology
+support@genericservice.com,user@email.com,2024-01-15 21:00:00,Update Available,"Hi,
+
+A new update is available for your account. Please review the changes and let us know if you have questions.
+
+Thanks,
+Support Team",true,technology,technology,technology
+newsletter@randomsite.com,subscriber@email.com,2024-01-15 22:00:00,Weekly Newsletter,"Hello Subscriber,
+
+Here's what happened this week:
+- Various updates
+- Some news
+- A few announcements
+
+Stay tuned for more!
+
+Best regards",true,technology,technology,technology

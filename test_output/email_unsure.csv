@@ -1,0 +1,84 @@
+sender,receiver,timestamp,subject,body,has_url,classified_domain,method1_domain,method2_domain
+orders@megashop.com,mike.wilson@gmail.com,2024-01-15 11:00:00,Order #MS-789456 Shipped!,"Hello Mike,
+
+Great news! Your order has shipped and is on its way.
+
+Order Details:
+- Order Number: MS-789456
+- Items: Wireless Headphones, Phone Case
+- Total: $89.99
+
+Your tracking number is: 1Z999AA10123456784
+
+Estimated delivery: January 18-20, 2024
+
+Thank you for shopping with MegaShop!
+
+Customer Service Team",true,unsure,retail,technology
+tracking@expressdelivery.com,sarah.jones@work.com,2024-01-15 12:30:00,Your Package is Out for Delivery,"Dear Customer,
+
+Your package is out for delivery today!
+
+Shipment Details:
+- Tracking: ED-2024-789012
+- Origin: Chicago, IL
+- Destination: Los Angeles, CA
+- Weight: 2.5 lbs
+
+Expected delivery window: 2:00 PM - 6:00 PM
+
+You can track your package in real-time using the link below.
+
+Express Delivery Logistics",true,unsure,logistics,retail
+appointments@healthplus.care,robert.brown@email.com,2024-01-15 08:00:00,Appointment Reminder - Dr. Williams,"Dear Robert Brown,
+
+This is a reminder of your upcoming appointment:
+
+Provider: Dr. Sarah Williams, MD
+Date: January 17, 2024
+Time: 2:30 PM
+Location: HealthPlus Medical Center, Suite 302
+
+Please arrive 15 minutes early to complete paperwork. Bring your insurance card and photo ID.
+
+If you need to reschedule, please call (555) 123-4567.
+
+This message contains protected health information (PHI) as defined by HIPAA.",true,unsure,healthcare,retail
+hr@techcorp.com,employee@techcorp.com,2024-01-15 09:00:00,Open Enrollment Reminder - Benefits Selection Due,"Dear Team Member,
+
+This is a reminder that the open enrollment period for 2024 benefits ends on January 31, 2024.
+
+Available Plans:
+- Medical (PPO, HMO, HDHP)
+- Dental
+- Vision
+- Life Insurance
+- 401(k) contributions
+
+Please log into the employee portal to make your selections. If no changes are made, your current elections will continue.
+
+For questions, contact HR at hr@techcorp.com.
+
+Human Resources Department
+TechCorp Inc.",true,unsure,hr,retail
+billing@mobilenet.com,customer@email.com,2024-01-15 16:00:00,Your January Bill is Ready,"Hello,
+
+Your MobileNet bill for January 2024 is now available.
+
+Account: ***-***-7890
+Bill Amount: $78.45
+Due Date: February 1, 2024
+
+Plan Details:
+- Unlimited Talk & Text
+- 10GB Data (Used: 7.2GB)
+- International Calling Add-on
+
+Set up AutoPay to never miss a payment.
+
+Thank you for being a MobileNet customer!",true,unsure,telecommunications,retail
+random@unknown-sender.xyz,recipient@email.com,2024-01-15 20:00:00,Hello there,"Hey,
+
+Just wanted to say hi and see how things are going. Let me know if you want to catch up sometime.
+
+Cheers",false,unsure,none,social_media

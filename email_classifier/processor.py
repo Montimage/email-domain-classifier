@@ -134,11 +134,15 @@ class StreamingProcessor:
 
     def _stream_emails(self, input_path: Path) -> Generator[Dict, None, None]:
         """Stream emails from CSV file one at a time."""
+        current_limit = csv.field_size_limit()
         try:
+            # Configure CSV reader to handle large fields
+            if self.allow_large_fields:
+                # Temporarily increase field size limit for this file
+                csv.field_size_limit(2**31 - 1)  # Set to a very large limit (about 2GB)
+
             with open(input_path, "r", encoding="utf-8", errors="replace") as f:
-                # Configure CSV reader to handle large fields
-                fieldsize_limit = None if self.allow_large_fields else 131072
-                reader = csv.DictReader(f, fieldsize_limit=fieldsize_limit)
+                reader = csv.DictReader(f)
 
                 # Validate columns
                 if reader.fieldnames:
@@ -176,6 +180,9 @@ class StreamingProcessor:
         except Exception as e:
             self.logger.error(f"Unexpected error reading CSV: {e}")
             raise
+        finally:
+            # Restore original field size limit
+            csv.field_size_limit(current_limit)
 
     def process(
         self,
@@ -212,14 +219,18 @@ class StreamingProcessor:
         self.logger.info(f"Total emails to process: {total_rows}")
 
         # Determine output fieldnames
-        with open(input_path, "r", encoding="utf-8", errors="replace") as f:
-            fieldsize_limit = None if self.allow_large_fields else 131072
-            reader = csv.DictReader(f, fieldsize_limit=fieldsize_limit)
-            fieldnames = (
-                list(reader.fieldnames)
-                if reader.fieldnames
-                else self.EXPECTED_COLUMNS.copy()
-            )
+        current_limit = csv.field_size_limit()
+        fieldnames = self.EXPECTED_COLUMNS.copy()
+        try:
+            if self.allow_large_fields:
+                csv.field_size_limit(2**31 - 1)  # Set to a very large limit
+
+            with open(input_path, "r", encoding="utf-8", errors="replace") as f:
+                reader = csv.DictReader(f)
+                if reader.fieldnames:
+                    fieldnames = list(reader.fieldnames)
+        finally:
+            csv.field_size_limit(current_limit)
 
         # Add classification columns
         fieldnames.extend(["classified_domain", "method1_domain", "method2_domain"])

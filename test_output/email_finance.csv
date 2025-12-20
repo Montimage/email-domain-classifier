@@ -1,0 +1,18 @@
+sender,receiver,timestamp,subject,body,has_url,classified_domain,method1_domain,method2_domain
+security@nationalbank.com,john.doe@email.com,2024-01-15 09:30:00,Urgent: Unusual Activity Detected on Your Account,"Dear Valued Customer,
+
+We have detected unusual activity on your account ending in ***4532. For your security, we have temporarily limited access to your account.
+
+Please verify your identity to restore full access to your account. Your account balance of $12,543.00 remains secure.
+
+Transaction Details:
+- Date: January 14, 2024
+- Amount: $892.00
+- Location: Unknown
+
+If you did not authorize this transaction, please contact us immediately at 1-800-555-0123.
+
+Sincerely,
+National Bank Security Team
+
+CONFIDENTIAL: This email is intended for the recipient only.",true,finance,finance,finance
