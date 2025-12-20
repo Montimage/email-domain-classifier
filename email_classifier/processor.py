@@ -132,10 +132,10 @@ class StreamingProcessor:
                 count += 1
         return count
 
-def _stream_emails(self, input_path: Path) -> Generator[Dict, None, None]:
+    def _stream_emails(self, input_path: Path) -> Generator[Dict, None, None]:
         """Stream emails from CSV file one at a time."""
         try:
-            with open(input_path, 'r', encoding='utf-8', errors='replace') as f:
+            with open(input_path, "r", encoding="utf-8", errors="replace") as f:
                 # Configure CSV reader to handle large fields
                 fieldsize_limit = None if self.allow_large_fields else 131072
                 reader = csv.DictReader(f, fieldsize_limit=fieldsize_limit)
@@ -150,9 +150,14 @@ def _stream_emails(self, input_path: Path) -> Generator[Dict, None, None]:
                     yield row
         except csv.Error as e:
             error_msg = str(e).lower()
-            if "field larger than field limit" in error_msg or "fieldsize limit" in error_msg:
+            if (
+                "field larger than field limit" in error_msg
+                or "fieldsize limit" in error_msg
+            ):
                 if self.allow_large_fields:
-                    self.logger.warning(f"Large CSV field detected. Processing continues with unlimited field size.")
+                    self.logger.warning(
+                        f"Large CSV field detected. Processing continues with unlimited field size."
+                    )
                 else:
                     self.logger.error(
                         f"✖ Error: Processing failed: field larger than field limit (131,072 characters)\n"
