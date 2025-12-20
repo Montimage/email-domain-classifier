@@ -1,0 +1,12 @@
+# Email Domain Classifier Dependencies
+# =====================================
+
+# Core dependencies
+rich>=13.0.0          # Terminal UI with progress bars, tables, panels
+
+# Optional dependencies for development
+# pytest>=7.0.0       # Testing framework
+# pytest-cov>=4.0.0   # Coverage reporting
+# black>=23.0.0       # Code formatting
+# isort>=5.0.0        # Import sorting
+# mypy>=1.0.0         # Type checking

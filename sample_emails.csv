@@ -1,0 +1,178 @@
+sender,receiver,timestamp,subject,body,has_url
+security@nationalbank.com,john.doe@email.com,2024-01-15 09:30:00,Urgent: Unusual Activity Detected on Your Account,"Dear Valued Customer,
+
+We have detected unusual activity on your account ending in ***4532. For your security, we have temporarily limited access to your account.
+
+Please verify your identity to restore full access to your account. Your account balance of $12,543.00 remains secure.
+
+Transaction Details:
+- Date: January 14, 2024
+- Amount: $892.00
+- Location: Unknown
+
+If you did not authorize this transaction, please contact us immediately at 1-800-555-0123.
+
+Sincerely,
+National Bank Security Team
+
+CONFIDENTIAL: This email is intended for the recipient only.",true
+noreply@cloudservice.tech,jane.smith@company.org,2024-01-15 10:15:00,Your Storage is Almost Full,"Hi Jane,
+
+Your cloud storage is 95% full. You're currently using 14.25 GB of your 15 GB storage limit.
+
+Upgrade to Premium for unlimited storage:
+- Unlimited cloud storage
+- Advanced sync features
+- Priority support
+
+Click below to upgrade your subscription.
+
+Best,
+CloudService Team",true
+orders@megashop.com,mike.wilson@gmail.com,2024-01-15 11:00:00,Order #MS-789456 Shipped!,"Hello Mike,
+
+Great news! Your order has shipped and is on its way.
+
+Order Details:
+- Order Number: MS-789456
+- Items: Wireless Headphones, Phone Case
+- Total: $89.99
+
+Your tracking number is: 1Z999AA10123456784
+
+Estimated delivery: January 18-20, 2024
+
+Thank you for shopping with MegaShop!
+
+Customer Service Team",true
+tracking@expressdelivery.com,sarah.jones@work.com,2024-01-15 12:30:00,Your Package is Out for Delivery,"Dear Customer,
+
+Your package is out for delivery today!
+
+Shipment Details:
+- Tracking: ED-2024-789012
+- Origin: Chicago, IL
+- Destination: Los Angeles, CA
+- Weight: 2.5 lbs
+
+Expected delivery window: 2:00 PM - 6:00 PM
+
+You can track your package in real-time using the link below.
+
+Express Delivery Logistics",true
+appointments@healthplus.care,robert.brown@email.com,2024-01-15 08:00:00,Appointment Reminder - Dr. Williams,"Dear Robert Brown,
+
+This is a reminder of your upcoming appointment:
+
+Provider: Dr. Sarah Williams, MD
+Date: January 17, 2024
+Time: 2:30 PM
+Location: HealthPlus Medical Center, Suite 302
+
+Please arrive 15 minutes early to complete paperwork. Bring your insurance card and photo ID.
+
+If you need to reschedule, please call (555) 123-4567.
+
+This message contains protected health information (PHI) as defined by HIPAA.",true
+notices@irs.gov,taxpayer@email.com,2024-01-15 14:00:00,Important Tax Notice - Action Required,"Dear Taxpayer,
+
+NOTICE: CP2000
+
+Our records indicate a discrepancy in your 2023 tax return (Form 1040).
+
+Reference Number: 123-45-6789-2023
+Tax Period: 2023
+Amount Due: $1,245.00
+
+You have 30 days to respond to this notice. You may:
+1. Agree with the proposed changes
+2. Disagree and provide documentation
+3. Request additional time
+
+Failure to respond may result in additional penalties and interest.
+
+Internal Revenue Service
+Department of the Treasury",true
+hr@techcorp.com,employee@techcorp.com,2024-01-15 09:00:00,Open Enrollment Reminder - Benefits Selection Due,"Dear Team Member,
+
+This is a reminder that the open enrollment period for 2024 benefits ends on January 31, 2024.
+
+Available Plans:
+- Medical (PPO, HMO, HDHP)
+- Dental
+- Vision
+- Life Insurance
+- 401(k) contributions
+
+Please log into the employee portal to make your selections. If no changes are made, your current elections will continue.
+
+For questions, contact HR at hr@techcorp.com.
+
+Human Resources Department
+TechCorp Inc.",true
+billing@mobilenet.com,customer@email.com,2024-01-15 16:00:00,Your January Bill is Ready,"Hello,
+
+Your MobileNet bill for January 2024 is now available.
+
+Account: ***-***-7890
+Bill Amount: $78.45
+Due Date: February 1, 2024
+
+Plan Details:
+- Unlimited Talk & Text
+- 10GB Data (Used: 7.2GB)
+- International Calling Add-on
+
+Set up AutoPay to never miss a payment.
+
+Thank you for being a MobileNet customer!",true
+notifications@socialconnect.com,user123@email.com,2024-01-15 18:30:00,New Login to Your Account,"Hi there,
+
+We noticed a new login to your SocialConnect account.
+
+Device: iPhone 14
+Location: New York, NY
+Time: January 15, 2024 at 6:25 PM EST
+
+If this was you, no action is needed. If you don't recognize this activity, secure your account immediately.
+
+- SocialConnect Security",true
+registrar@stateuniversity.edu,student@mail.stateuniversity.edu,2024-01-15 07:30:00,Spring 2024 Registration Confirmation,"Dear Student,
+
+Your registration for Spring 2024 has been confirmed.
+
+Student ID: STU-2024-5678
+Enrolled Courses:
+- CS 301: Data Structures (3 credits)
+- MATH 201: Linear Algebra (4 credits)
+- ENG 102: Technical Writing (3 credits)
+
+Total Credits: 10
+Tuition Due: $4,500.00
+Payment Deadline: January 25, 2024
+
+Access your student portal to view your complete schedule.
+
+Office of the Registrar
+State University",true
+random@unknown-sender.xyz,recipient@email.com,2024-01-15 20:00:00,Hello there,"Hey,
+
+Just wanted to say hi and see how things are going. Let me know if you want to catch up sometime.
+
+Cheers",false
+support@genericservice.com,user@email.com,2024-01-15 21:00:00,Update Available,"Hi,
+
+A new update is available for your account. Please review the changes and let us know if you have questions.
+
+Thanks,
+Support Team",true
+newsletter@randomsite.com,subscriber@email.com,2024-01-15 22:00:00,Weekly Newsletter,"Hello Subscriber,
+
+Here's what happened this week:
+- Various updates
+- Some news
+- A few announcements
+
+Stay tuned for more!
+
+Best regards",true

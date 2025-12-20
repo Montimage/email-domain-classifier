@@ -1,0 +1,392 @@
+"""
+Domain definitions, keyword taxonomies, and structural templates for email classification.
+"""
+
+from dataclasses import dataclass, field
+from typing import Dict, List, Set
+import re
+
+
+@dataclass
+class DomainProfile:
+    """Complete profile for a domain including keywords and structural patterns."""
+    
+    name: str
+    display_name: str
+    color: str  # For terminal UI
+    
+    # Method 1: Keyword Taxonomy
+    primary_keywords: Set[str] = field(default_factory=set)
+    secondary_keywords: Set[str] = field(default_factory=set)
+    sender_patterns: List[str] = field(default_factory=list)
+    subject_patterns: List[str] = field(default_factory=list)
+    
+    # Method 2: Structural Templates
+    typical_body_length: tuple = (100, 2000)  # min, max chars
+    has_greeting: bool = True
+    has_signature: bool = True
+    has_disclaimer: bool = False
+    url_expected: bool = True
+    formality_level: str = "formal"  # formal, semi-formal, casual
+    typical_paragraph_count: tuple = (2, 6)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DOMAIN PROFILES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+DOMAINS: Dict[str, DomainProfile] = {
+    
+    "finance": DomainProfile(
+        name="finance",
+        display_name="💰 Finance",
+        color="green",
+        primary_keywords={
+            "account", "balance", "transaction", "payment", "bank", "credit",
+            "debit", "transfer", "wire", "routing", "statement", "deposit",
+            "withdrawal", "loan", "mortgage", "investment", "portfolio",
+            "dividend", "interest", "ach", "swift", "iban", "checking",
+            "savings", "overdraft", "direct deposit", "payroll"
+        },
+        secondary_keywords={
+            "financial", "funds", "money", "currency", "exchange", "rate",
+            "fee", "charge", "billing", "invoice", "receipt", "confirm",
+            "verify", "secure", "fraud", "suspicious", "alert", "notification"
+        },
+        sender_patterns=[
+            r".*@.*bank.*", r".*@.*capital.*", r".*@.*financial.*",
+            r".*@.*pay.*", r".*@.*credit.*", r".*@.*invest.*",
+            r".*security.*@.*", r".*fraud.*@.*", r".*alert.*@.*"
+        ],
+        subject_patterns=[
+            r".*account.*", r".*statement.*", r".*transaction.*",
+            r".*payment.*", r".*transfer.*", r".*balance.*"
+        ],
+        typical_body_length=(200, 3000),
+        has_greeting=True,
+        has_signature=True,
+        has_disclaimer=True,
+        url_expected=True,
+        formality_level="formal",
+        typical_paragraph_count=(3, 8)
+    ),
+    
+    "technology": DomainProfile(
+        name="technology",
+        display_name="💻 Technology",
+        color="blue",
+        primary_keywords={
+            "password", "login", "signin", "sign-in", "username", "account",
+            "subscription", "storage", "cloud", "sync", "backup", "update",
+            "upgrade", "license", "software", "app", "application", "service",
+            "api", "access", "authentication", "verification", "two-factor",
+            "2fa", "mfa", "token", "session", "device", "browser"
+        },
+        secondary_keywords={
+            "expired", "expiring", "renew", "renewal", "plan", "tier",
+            "premium", "pro", "enterprise", "workspace", "team", "admin",
+            "settings", "preferences", "notification", "alert", "security"
+        },
+        sender_patterns=[
+            r".*@.*\.tech", r".*@.*cloud.*", r".*@.*software.*",
+            r"noreply@.*", r"no-reply@.*", r".*notifications@.*",
+            r".*security@.*", r".*support@.*", r".*team@.*"
+        ],
+        subject_patterns=[
+            r".*password.*", r".*sign.?in.*", r".*subscription.*",
+            r".*storage.*", r".*account.*access.*", r".*verify.*"
+        ],
+        typical_body_length=(100, 1500),
+        has_greeting=True,
+        has_signature=True,
+        has_disclaimer=False,
+        url_expected=True,
+        formality_level="semi-formal",
+        typical_paragraph_count=(2, 5)
+    ),
+    
+    "retail": DomainProfile(
+        name="retail",
+        display_name="🛒 Retail",
+        color="magenta",
+        primary_keywords={
+            "order", "purchase", "shipping", "delivery", "item", "product",
+            "cart", "checkout", "price", "discount", "coupon", "promo",
+            "sale", "deal", "offer", "refund", "return", "exchange",
+            "tracking", "shipped", "delivered", "package", "warehouse",
+            "inventory", "stock", "quantity", "size", "color"
+        },
+        secondary_keywords={
+            "shop", "store", "buy", "confirm", "receipt", "invoice",
+            "total", "subtotal", "tax", "free shipping", "express",
+            "standard", "estimated", "arrival", "dispatch"
+        },
+        sender_patterns=[
+            r".*@.*shop.*", r".*@.*store.*", r".*@.*retail.*",
+            r".*orders@.*", r".*shipping@.*", r".*support@.*",
+            r".*customerservice@.*"
+        ],
+        subject_patterns=[
+            r".*order.*confirm.*", r".*ship.*", r".*deliver.*",
+            r".*tracking.*", r".*purchase.*", r".*receipt.*"
+        ],
+        typical_body_length=(150, 2000),
+        has_greeting=True,
+        has_signature=True,
+        has_disclaimer=False,
+        url_expected=True,
+        formality_level="semi-formal",
+        typical_paragraph_count=(2, 6)
+    ),
+    
+    "logistics": DomainProfile(
+        name="logistics",
+        display_name="📦 Logistics",
+        color="yellow",
+        primary_keywords={
+            "shipment", "tracking", "delivery", "package", "parcel",
+            "carrier", "freight", "cargo", "dispatch", "transit",
+            "warehouse", "distribution", "customs", "import", "export",
+            "courier", "express", "standard", "overnight", "ground",
+            "air", "estimated", "arrival", "departure", "route"
+        },
+        secondary_keywords={
+            "ship", "deliver", "track", "eta", "status", "update",
+            "notification", "scheduled", "attempt", "signature",
+            "recipient", "sender", "origin", "destination", "weight"
+        },
+        sender_patterns=[
+            r".*@.*fedex.*", r".*@.*ups.*", r".*@.*dhl.*",
+            r".*@.*usps.*", r".*@.*post.*", r".*tracking@.*",
+            r".*delivery@.*", r".*shipment@.*", r".*logistics@.*"
+        ],
+        subject_patterns=[
+            r".*tracking.*", r".*shipment.*", r".*delivery.*",
+            r".*package.*", r".*parcel.*", r".*shipped.*"
+        ],
+        typical_body_length=(100, 1000),
+        has_greeting=True,
+        has_signature=True,
+        has_disclaimer=False,
+        url_expected=True,
+        formality_level="semi-formal",
+        typical_paragraph_count=(2, 4)
+    ),
+    
+    "healthcare": DomainProfile(
+        name="healthcare",
+        display_name="🏥 Healthcare",
+        color="cyan",
+        primary_keywords={
+            "patient", "appointment", "doctor", "physician", "medical",
+            "health", "prescription", "medication", "pharmacy", "clinic",
+            "hospital", "lab", "test", "results", "diagnosis", "treatment",
+            "insurance", "coverage", "claim", "copay", "deductible",
+            "provider", "specialist", "referral", "records", "hipaa"
+        },
+        secondary_keywords={
+            "care", "wellness", "visit", "schedule", "reschedule",
+            "cancel", "confirm", "reminder", "checkup", "screening",
+            "vaccination", "immunization", "benefits", "plan", "member"
+        },
+        sender_patterns=[
+            r".*@.*health.*", r".*@.*medical.*", r".*@.*clinic.*",
+            r".*@.*hospital.*", r".*@.*care.*", r".*@.*pharma.*",
+            r".*appointments@.*", r".*patient.*@.*"
+        ],
+        subject_patterns=[
+            r".*appointment.*", r".*prescription.*", r".*results.*",
+            r".*health.*", r".*medical.*", r".*patient.*"
+        ],
+        typical_body_length=(150, 2000),
+        has_greeting=True,
+        has_signature=True,
+        has_disclaimer=True,
+        url_expected=True,
+        formality_level="formal",
+        typical_paragraph_count=(2, 5)
+    ),
+    
+    "government": DomainProfile(
+        name="government",
+        display_name="🏛️ Government",
+        color="red",
+        primary_keywords={
+            "tax", "filing", "irs", "federal", "state", "municipal",
+            "compliance", "regulation", "form", "document", "certificate",
+            "license", "permit", "registration", "renewal", "deadline",
+            "penalty", "fine", "refund", "return", "w-2", "1099",
+            "social security", "ssn", "ein", "benefits", "unemployment"
+        },
+        secondary_keywords={
+            "government", "agency", "department", "official", "notice",
+            "notification", "requirement", "mandate", "law", "statute",
+            "code", "section", "submit", "file", "due", "overdue"
+        },
+        sender_patterns=[
+            r".*@.*\.gov", r".*@.*government.*", r".*@.*federal.*",
+            r".*@.*state\.[a-z]{2}\.us", r".*@.*irs.*", r".*@.*tax.*"
+        ],
+        subject_patterns=[
+            r".*tax.*", r".*filing.*", r".*compliance.*",
+            r".*notice.*", r".*deadline.*", r".*form.*"
+        ],
+        typical_body_length=(200, 3000),
+        has_greeting=True,
+        has_signature=True,
+        has_disclaimer=True,
+        url_expected=True,
+        formality_level="formal",
+        typical_paragraph_count=(3, 8)
+    ),
+    
+    "hr": DomainProfile(
+        name="hr",
+        display_name="👥 Human Resources",
+        color="white",
+        primary_keywords={
+            "employee", "staff", "payroll", "salary", "compensation",
+            "benefits", "enrollment", "pto", "vacation", "leave",
+            "sick", "holiday", "policy", "handbook", "onboarding",
+            "training", "performance", "review", "evaluation", "promotion",
+            "termination", "resignation", "hiring", "offer", "contract"
+        },
+        secondary_keywords={
+            "hr", "human resources", "personnel", "team", "department",
+            "manager", "supervisor", "direct deposit", "w-4", "i-9",
+            "background check", "reference", "interview", "candidate"
+        },
+        sender_patterns=[
+            r".*hr@.*", r".*human.?resources@.*", r".*payroll@.*",
+            r".*benefits@.*", r".*recruiting@.*", r".*talent@.*",
+            r".*people@.*", r".*personnel@.*"
+        ],
+        subject_patterns=[
+            r".*employee.*", r".*payroll.*", r".*benefits.*",
+            r".*policy.*", r".*hr.*", r".*review.*"
+        ],
+        typical_body_length=(150, 2500),
+        has_greeting=True,
+        has_signature=True,
+        has_disclaimer=True,
+        url_expected=True,
+        formality_level="formal",
+        typical_paragraph_count=(2, 6)
+    ),
+    
+    "telecommunications": DomainProfile(
+        name="telecommunications",
+        display_name="📱 Telecom",
+        color="bright_blue",
+        primary_keywords={
+            "bill", "billing", "plan", "data", "minutes", "texts",
+            "unlimited", "mobile", "phone", "cell", "wireless",
+            "network", "coverage", "roaming", "international", "upgrade",
+            "device", "sim", "esim", "activation", "port", "number",
+            "voicemail", "hotspot", "tethering", "5g", "4g", "lte"
+        },
+        secondary_keywords={
+            "carrier", "provider", "service", "account", "statement",
+            "payment", "autopay", "due", "overdue", "usage", "overage",
+            "throttle", "speed", "bandwidth", "signal"
+        },
+        sender_patterns=[
+            r".*@.*mobile.*", r".*@.*wireless.*", r".*@.*telecom.*",
+            r".*@.*cell.*", r".*billing@.*", r".*service@.*"
+        ],
+        subject_patterns=[
+            r".*bill.*", r".*plan.*", r".*mobile.*",
+            r".*wireless.*", r".*phone.*", r".*data.*"
+        ],
+        typical_body_length=(100, 1500),
+        has_greeting=True,
+        has_signature=True,
+        has_disclaimer=False,
+        url_expected=True,
+        formality_level="semi-formal",
+        typical_paragraph_count=(2, 5)
+    ),
+    
+    "social_media": DomainProfile(
+        name="social_media",
+        display_name="📲 Social Media",
+        color="bright_magenta",
+        primary_keywords={
+            "profile", "post", "comment", "like", "share", "follow",
+            "follower", "following", "friend", "connection", "message",
+            "dm", "notification", "mention", "tag", "story", "reel",
+            "feed", "timeline", "bio", "photo", "video", "content",
+            "creator", "community", "group", "page", "verified"
+        },
+        secondary_keywords={
+            "social", "network", "account", "login", "password",
+            "security", "privacy", "settings", "blocked", "reported",
+            "violation", "guidelines", "policy", "suspended", "appeal"
+        },
+        sender_patterns=[
+            r".*@.*facebook.*", r".*@.*instagram.*", r".*@.*twitter.*",
+            r".*@.*linkedin.*", r".*@.*tiktok.*", r".*@.*x\.com",
+            r".*notification.*@.*", r".*security@.*"
+        ],
+        subject_patterns=[
+            r".*login.*", r".*security.*", r".*notification.*",
+            r".*message.*", r".*friend.*", r".*follow.*"
+        ],
+        typical_body_length=(50, 800),
+        has_greeting=False,
+        has_signature=True,
+        has_disclaimer=False,
+        url_expected=True,
+        formality_level="casual",
+        typical_paragraph_count=(1, 3)
+    ),
+    
+    "education": DomainProfile(
+        name="education",
+        display_name="🎓 Education",
+        color="bright_cyan",
+        primary_keywords={
+            "student", "course", "class", "enrollment", "registration",
+            "semester", "quarter", "grade", "transcript", "degree",
+            "diploma", "certificate", "tuition", "financial aid",
+            "scholarship", "loan", "fafsa", "admission", "application",
+            "exam", "test", "assignment", "deadline", "professor"
+        },
+        secondary_keywords={
+            "university", "college", "school", "campus", "department",
+            "faculty", "academic", "curriculum", "syllabus", "lecture",
+            "lab", "library", "portal", "canvas", "blackboard"
+        },
+        sender_patterns=[
+            r".*@.*\.edu", r".*@.*university.*", r".*@.*college.*",
+            r".*@.*school.*", r".*registrar@.*", r".*admissions@.*",
+            r".*financial.?aid@.*"
+        ],
+        subject_patterns=[
+            r".*enrollment.*", r".*registration.*", r".*course.*",
+            r".*grade.*", r".*student.*", r".*class.*"
+        ],
+        typical_body_length=(150, 2000),
+        has_greeting=True,
+        has_signature=True,
+        has_disclaimer=False,
+        url_expected=True,
+        formality_level="formal",
+        typical_paragraph_count=(2, 5)
+    ),
+}
+
+
+def get_domain_names() -> List[str]:
+    """Return list of all domain names."""
+    return list(DOMAINS.keys())
+
+
+def get_domain_profile(domain: str) -> DomainProfile:
+    """Get profile for a specific domain."""
+    return DOMAINS.get(domain)
+
+
+def get_all_profiles() -> Dict[str, DomainProfile]:
+    """Return all domain profiles."""
+    return DOMAINS.copy()

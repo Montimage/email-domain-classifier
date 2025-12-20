@@ -1,0 +1,84 @@
+"""
+Email Domain Classifier Package
+
+A Python library for classifying emails by domain using dual-method validation.
+Combines keyword taxonomy matching and structural template analysis for accurate
+domain classification across 10 business domains.
+
+Main Classes:
+- EmailClassifier: Main classifier combining both methods
+- StreamingProcessor: Memory-efficient processing of large CSV datasets
+- ClassificationReporter: Generate detailed reports and statistics
+
+Usage:
+    from email_classifier import EmailClassifier
+
+    classifier = EmailClassifier()
+    domain, details = classifier.classify_dict(email_data)
+"""
+
+# Version info
+__version__ = "1.0.0"
+__author__ = "Montimage Security Research"
+__email__ = "research@montimage.com"
+
+# Core classification classes
+from .classifier import (
+    EmailClassifier,
+    EmailData,
+    ClassificationResult,
+    KeywordTaxonomyClassifier,
+    StructuralTemplateClassifier,
+)
+
+# Processing and reporting
+from .processor import StreamingProcessor, ProcessingStats
+from .reporter import ClassificationReporter, ReportConfig
+
+# Domain definitions
+from .domains import (
+    DOMAINS,
+    DomainProfile,
+    get_domain_names,
+    get_domain_profile,
+    get_all_profiles,
+)
+
+# UI components
+from .ui import get_ui, TerminalUI, SimpleUI, RICH_AVAILABLE
+
+# CLI entry point
+from .cli import main
+
+# Public API
+__all__ = [
+    # Version info
+    "__version__",
+    "__author__",
+    "__email__",
+    # Core classes
+    "EmailClassifier",
+    "EmailData",
+    "ClassificationResult",
+    "KeywordTaxonomyClassifier",
+    "StructuralTemplateClassifier",
+    # Processing
+    "StreamingProcessor",
+    "ProcessingStats",
+    # Reporting
+    "ClassificationReporter",
+    "ReportConfig",
+    # Domains
+    "DOMAINS",
+    "DomainProfile",
+    "get_domain_names",
+    "get_domain_profile",
+    "get_all_profiles",
+    # UI
+    "get_ui",
+    "TerminalUI",
+    "SimpleUI",
+    "RICH_AVAILABLE",
+    # CLI
+    "main",
+]
