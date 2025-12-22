@@ -1,5 +1,12 @@
 # 📧 Email Domain Classifier
 
+[![CI Status](https://github.com/luongnv89/email-classifier/workflows/CI/badge.svg)](https://github.com/luongnv89/email-classifier/actions)
+[![codecov](https://codecov.io/gh/luongnv89/email-classifier/graph/badge.svg?token=YOUR_TOKEN)](https://codecov.io/gh/luongnv89/email-classifier)
+[![PyPI version](https://badge.fury.io/py/email-classifier.svg)](https://badge.fury.io/py/email-classifier)
+[![Python versions](https://img.shields.io/pypi/pyversions/email-classifier.svg)](https://pypi.org/project/email-classifier/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 A Python library for classifying emails by domain using dual-method validation. Designed for processing large datasets efficiently with streaming processing and beautiful terminal output.
 
 ## ⚡ Quick Reference

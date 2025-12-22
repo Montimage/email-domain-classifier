@@ -150,3 +150,9 @@ classification_report.*
 output/
 temp/
 *.csv.bak
+
+openspec/
+.claude
+.gemini
+.opencode
+.ruff_cache

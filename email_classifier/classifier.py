@@ -25,10 +25,15 @@ class EmailData:
     """Parsed email data structure."""
     sender: str
     receiver: str
-    timestamp: str
+    date: str
     subject: str
     body: str
-    has_url: bool
+    urls: str
+    
+    @property
+    def has_url(self) -> bool:
+        """Compatibility property for classification logic."""
+        return bool(self.urls and self.urls.strip())
     
     @classmethod
     def from_dict(cls, data: Dict) -> 'EmailData':
@@ -36,20 +41,11 @@ class EmailData:
         return cls(
             sender=str(data.get('sender', '')).lower().strip(),
             receiver=str(data.get('receiver', '')).lower().strip(),
-            timestamp=str(data.get('timestamp', '')).strip(),
+            date=str(data.get('date', '')).strip(),
             subject=str(data.get('subject', '')).strip(),
             body=str(data.get('body', '')).strip(),
-            has_url=cls._parse_bool(data.get('has_url', False))
+            urls=str(data.get('urls', '')).strip()
         )
-    
-    @staticmethod
-    def _parse_bool(value) -> bool:
-        """Parse various boolean representations."""
-        if isinstance(value, bool):
-            return value
-        if isinstance(value, str):
-            return value.lower() in ('true', '1', 'yes', 'y')
-        return bool(value)
 
 
 class KeywordTaxonomyClassifier:
@@ -113,7 +109,7 @@ class KeywordTaxonomyClassifier:
             confidence = normalized.get(best_domain, 0)
             
             # Require minimum confidence threshold
-            if confidence < 0.10 or best_score < 1.5:
+            if confidence < 0.05 or best_score < 1.5:
                 best_domain = None
                 confidence = 0.0
         else:
@@ -271,7 +267,7 @@ class StructuralTemplateClassifier:
             confidence = normalized.get(best_domain, 0)
             
             # Require minimum threshold
-            if confidence < 0.08 or best_score < 2.0:
+            if confidence < 0.04 or best_score < 2.0:
                 best_domain = None
                 confidence = 0.0
         else:
@@ -459,9 +455,13 @@ class EmailClassifier:
     Classification logic:
     - Run Method 1 (Keyword Taxonomy)
     - Run Method 2 (Structural Template)
-    - If both agree on domain -> assign that domain
-    - If they disagree -> mark as 'unsure'
+    - Calculate weighted combined score
+    - Assign domain with highest score if above threshold
     """
+    
+    WEIGHT_METHOD_1 = 0.6  # Keywords
+    WEIGHT_METHOD_2 = 0.4  # Structure
+    GLOBAL_THRESHOLD = 0.15
     
     def __init__(self, domains: Dict[str, DomainProfile] = None):
         self.domains = domains or DOMAINS
@@ -470,7 +470,7 @@ class EmailClassifier:
     
     def classify(self, email: EmailData) -> Tuple[str, Dict]:
         """
-        Classify email using dual-method validation.
+        Classify email using dual-method validation with weighted scoring.
         
         Returns:
             Tuple of (domain_name or 'unsure', classification_details)
@@ -478,6 +478,7 @@ class EmailClassifier:
         result1 = self.method1.classify(email)
         result2 = self.method2.classify(email)
         
+        # Initialize details
         details = {
             'method1': {
                 'domain': result1.domain,
@@ -489,28 +490,43 @@ class EmailClassifier:
                 'confidence': result2.confidence,
                 'scores': result2.scores,
             },
+            'method_weights': {
+                'method1': self.WEIGHT_METHOD_1,
+                'method2': self.WEIGHT_METHOD_2,
+            }
         }
         
-        # Both methods must agree for confident classification
-        if result1.domain and result2.domain:
-            if result1.domain == result2.domain:
-                final_domain = result1.domain
-                details['agreement'] = True
-                details['final_confidence'] = (result1.confidence + result2.confidence) / 2
+        # Calculate combined scores
+        combined_scores = {}
+        all_domains = set(result1.scores.keys()) | set(result2.scores.keys())
+        
+        for domain in all_domains:
+            score1 = result1.scores.get(domain, 0.0)
+            score2 = result2.scores.get(domain, 0.0)
+            
+            combined_score = (
+                (score1 * self.WEIGHT_METHOD_1) + 
+                (score2 * self.WEIGHT_METHOD_2)
+            )
+            combined_scores[domain] = combined_score
+            
+        details['combined_scores'] = combined_scores
+        
+        # Find best match
+        if combined_scores:
+            best_domain = max(combined_scores, key=combined_scores.get)
+            best_score = combined_scores[best_domain]
+            
+            details['final_confidence'] = best_score
+            
+            if best_score >= self.GLOBAL_THRESHOLD:
+                final_domain = best_domain
             else:
                 final_domain = 'unsure'
-                details['agreement'] = False
-                details['conflict'] = f"{result1.domain} vs {result2.domain}"
-        elif result1.domain or result2.domain:
-            # Only one method returned a result
-            final_domain = 'unsure'
-            details['agreement'] = False
-            details['partial'] = True
+                details['reason'] = 'below_threshold'
         else:
-            # Neither method could classify
             final_domain = 'unsure'
-            details['agreement'] = False
-            details['no_match'] = True
+            details['reason'] = 'no_scores'
         
         return final_domain, details
     

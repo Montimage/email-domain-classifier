@@ -1,0 +1,242 @@
+# Installation Guide
+
+This guide will help you install the Email Domain Classifier on your system.
+
+## Prerequisites
+
+- **Python 3.10 or higher** - Check with `python --version`
+- **pip** - Package installer (comes with Python)
+- **git** - Version control (for cloning the repository)
+
+## Method 1: Install from PyPI (Recommended)
+
+```bash
+# Basic installation
+pip install email-classifier
+
+# With development tools
+pip install email-classifier[dev]
+```
+
+## Method 2: Install from Source
+
+### Clone the Repository
+
+```bash
+# Clone the repository
+git clone https://github.com/luongnv89/email-classifier.git
+
+# Navigate into the project directory
+cd email-classifier
+```
+
+### Set Up Virtual Environment (Recommended)
+
+```bash
+# Create a virtual environment
+python -m venv .venv
+
+# Activate the virtual environment
+# On macOS/Linux:
+source .venv/bin/activate
+# On Windows:
+.venv\Scripts\activate
+```
+
+### Install the Package
+
+```bash
+# Install in development mode
+pip install -e .
+
+# Or for development with extra tools:
+pip install -e ".[dev]"
+```
+
+## Verify Installation
+
+### Check CLI Installation
+
+```bash
+# Check version
+email-classifier --version
+
+# List supported domains  
+email-classifier --list-domains
+
+# Show help
+email-classifier --help
+```
+
+### Check Python Installation
+
+```bash
+# Test Python import
+python -c "from email_classifier import EmailClassifier; print('✅ Import successful')"
+```
+
+## Method 3: Development Installation
+
+For contributors who want to work on the codebase:
+
+```bash
+# Clone and navigate to project
+git clone https://github.com/luongnv89/email-classifier.git
+cd email-classifier
+
+# Create and activate virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install in development mode with all tools
+pip install -e ".[dev]"
+
+# Install pre-commit hooks
+pre-commit install
+```
+
+## Dependencies
+
+### Required Dependencies
+
+- **rich >= 13.0.0** - Terminal UI components for progress bars and tables
+
+### Development Dependencies
+
+- **pytest >= 7.0.0** - Testing framework
+- **pytest-cov >= 4.0.0** - Test coverage reporting  
+- **black >= 23.0.0** - Code formatting
+- **isort >= 5.0.0** - Import sorting
+- **mypy >= 1.0.0** - Static type checking
+
+## Platform Support
+
+Email Domain Classifier supports:
+
+- ✅ **Linux** (Ubuntu, CentOS, Debian, etc.)
+- ✅ **macOS** (Intel and Apple Silicon)
+- ✅ **Windows** (Windows 10 and 11)
+
+## Troubleshooting
+
+### Common Installation Issues
+
+#### "Python not found" or Version Issues
+
+```bash
+# Check Python version
+python --version
+python3 --version
+
+# On macOS, install Python 3.10+:
+brew install python@3.11
+
+# On Ubuntu/Debian:
+sudo apt update
+sudo apt install python3.11 python3.11-venv
+
+# On Windows: Download from python.org
+```
+
+#### "pip command not found"
+
+```bash
+# Ensure pip is installed and up to date
+python -m pip install --upgrade pip
+
+# Use python -m pip if pip is not in PATH
+python -m pip install -e .
+```
+
+#### "Permission denied" during installation
+
+```bash
+# Use user directory installation
+pip install --user -e .
+
+# Or fix permissions (Unix/Linux)
+sudo chown -R $USER:.local
+```
+
+#### Import errors after installation
+
+```bash
+# Reinstall in development mode
+pip uninstall email-classifier
+pip install -e .
+
+# Verify package location
+pip show email-classifier
+```
+
+### Virtual Environment Issues
+
+#### Activation fails on Windows
+
+```cmd
+# Try the full path
+C:\path\to\project\.venv\Scripts\activate
+
+# If using PowerShell
+.\.venv\Scripts\Activate.ps1
+```
+
+#### Python not found after activation
+
+```bash
+# Ensure venv was created with correct Python
+python3.11 -m venv .venv  # Use specific version
+```
+
+### Dependency Issues
+
+#### Rich installation fails
+
+```bash
+# Update pip and setuptools
+python -m pip install --upgrade pip setuptools
+
+# Try installing rich separately
+pip install rich>=13.0.0
+pip install -e .
+```
+
+#### Development tools installation issues
+
+```bash
+# Install development dependencies manually
+pip install pytest pytest-cov black isort mypy
+
+# Or install from requirements.txt if available
+pip install -r requirements-dev.txt
+```
+
+## Next Steps
+
+After successful installation:
+
+1. **Try the basic example**: `email-classifier sample_emails.csv -o output/`
+2. **Read the [User Guide](user-guide/index)** for comprehensive usage
+3. **Explore the [API Documentation](api/index)** for Python integration
+4. **Check the [Examples](user-guide/examples)** for practical use cases
+
+## Getting Help
+
+If you encounter issues not covered here:
+
+1. **Check the [Troubleshooting Guide](user-guide/troubleshooting)**
+2. **Search existing [GitHub Issues](https://github.com/luongnv89/email-classifier/issues)**
+3. **Create a new issue** with detailed information
+4. **Ask in [GitHub Discussions](https://github.com/luongnv89/email-classifier/discussions)**
+
+## Uninstallation
+
+If you need to uninstall the package:
+
+```bash
+# Uninstall the package
+pip uninstall email-classifier
+
+# Remove virtual environment (if created)
+rm -rf .venv
+```

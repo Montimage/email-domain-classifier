@@ -1,0 +1,59 @@
+# Include important project files in distributions
+
+# Documentation files
+include README.md
+include CHANGELOG.md
+include LICENSE
+include CONTRIBUTING.md
+include SECURITY.md
+include CODE_OF_CONDUCT.md
+
+# Configuration files
+include pyproject.toml
+include requirements.txt
+include MANIFEST.in
+
+# Type information marker
+include email_classifier/py.typed
+
+# Sample data
+include sample_emails.csv
+
+# Include all relevant documentation
+recursive-include docs *.md *.rst *.txt
+
+# Include test files
+recursive-include tests *.py
+
+# Include package data
+recursive-include email_classifier *.py *.pyi
+
+# Exclude development and cache files
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude *.pyd
+global-exclude __pycache__
+global-exclude .git*
+global-exclude .DS_Store
+global-exclude *.so
+global-exclude .coverage
+global-exclude .pytest_cache
+global-exclude .mypy_cache
+global-exclude .tox
+global-exclude *.egg-info
+
+# Exclude development directories
+prune .venv
+prune venv
+prune env
+prune .env
+prune build
+prune dist
+
+# Exclude test data directories that shouldn't be packaged
+prune ceas-08
+prune ceas-08-00
+prune ceas-08-01
+prune ceas-08-02
+prune spam-assassin
+prune test_output

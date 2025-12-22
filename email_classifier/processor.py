@@ -107,7 +107,7 @@ class StreamingProcessor:
     """
 
     # Default expected CSV columns
-    EXPECTED_COLUMNS = ["sender", "receiver", "timestamp", "subject", "body", "has_url"]
+    EXPECTED_COLUMNS = ["sender", "receiver", "date", "subject", "body", "label", "urls"]
 
     def __init__(
         self,
@@ -125,43 +125,63 @@ class StreamingProcessor:
     def count_rows(self, input_path: Path) -> int:
         """Count total rows in CSV file for progress tracking."""
         count = 0
-        with open(input_path, "r", encoding="utf-8", errors="replace") as f:
-            # Skip header
-            next(f, None)
-            for _ in f:
-                count += 1
+        try:
+            # Set field limit if needed
+            current_limit = csv.field_size_limit()
+            if self.allow_large_fields:
+                csv.field_size_limit(2**31 - 1)
+
+            with open(input_path, "r", encoding="utf-8", errors="replace") as f:
+                reader = csv.reader(f)
+                try:
+                    # Skip header
+                    next(reader, None)
+                    for _ in reader:
+                        count += 1
+                except csv.Error:
+                    # Fallback to line counting if CSV parsing fails during counting
+                    # This is just an estimate anyway
+                    f.seek(0)
+                    next(f, None)
+                    for _ in f:
+                        count += 1
+        finally:
+            if self.allow_large_fields:
+                csv.field_size_limit(current_limit)
+        
         return count
 
     def _stream_emails(self, input_path: Path) -> Generator[Dict, None, None]:
         """Stream emails from CSV file one at a time."""
-        current_limit = csv.field_size_limit()
         try:
             # Configure CSV reader to handle large fields
             if self.allow_large_fields:
                 # Temporarily increase field size limit for this file
-                csv.field_size_limit(2**31 - 1)  # Set to a very large limit (about 2GB)
+                current_limit = csv.field_size_limit()
+                csv.field_size_limit(2**31-1)  # Set to a very large limit (about 2GB)
+                self.logger.info(f"Field size limit set to: {current_limit}")
+            else:
+                current_limit = None
+                self.logger.info(f"Field size limit used: default (131,072)")
 
             with open(input_path, "r", encoding="utf-8", errors="replace") as f:
                 reader = csv.DictReader(f)
-
-                # Validate columns
                 if reader.fieldnames:
                     missing = set(self.EXPECTED_COLUMNS) - set(reader.fieldnames)
                     if missing:
-                        self.logger.warning(f"Missing expected columns: {missing}")
+                        # Allow label to be missing in input if it's going to be added in output
+                        # but warning if other core columns are missing
+                        critical_missing = missing - {"label"}
+                        if critical_missing:
+                            self.logger.warning(f"Missing expected columns: {critical_missing}")
 
                 for row in reader:
                     yield row
         except csv.Error as e:
             error_msg = str(e).lower()
-            if (
-                "field larger than field limit" in error_msg
-                or "fieldsize limit" in error_msg
-            ):
+            if "field larger than field limit" in error_msg or "fieldsize limit" in error_msg:
                 if self.allow_large_fields:
-                    self.logger.warning(
-                        f"Large CSV field detected. Processing continues with unlimited field size."
-                    )
+                    self.logger.warning(f"Large CSV field detected. Processing continues with unlimited field size.")
                 else:
                     self.logger.error(
                         f"✖ Error: Processing failed: field larger than field limit (131,072 characters)\n"
@@ -180,9 +200,6 @@ class StreamingProcessor:
         except Exception as e:
             self.logger.error(f"Unexpected error reading CSV: {e}")
             raise
-        finally:
-            # Restore original field size limit
-            csv.field_size_limit(current_limit)
 
     def process(
         self,
@@ -220,7 +237,9 @@ class StreamingProcessor:
 
         # Determine output fieldnames
         current_limit = csv.field_size_limit()
+        # Start with standard columns in order
         fieldnames = self.EXPECTED_COLUMNS.copy()
+        
         try:
             if self.allow_large_fields:
                 csv.field_size_limit(2**31 - 1)  # Set to a very large limit
@@ -228,7 +247,9 @@ class StreamingProcessor:
             with open(input_path, "r", encoding="utf-8", errors="replace") as f:
                 reader = csv.DictReader(f)
                 if reader.fieldnames:
-                    fieldnames = list(reader.fieldnames)
+                    # Keep standard columns first, then add any extra columns from input
+                    extra_cols = [c for c in reader.fieldnames if c not in fieldnames]
+                    fieldnames.extend(extra_cols)
         finally:
             csv.field_size_limit(current_limit)
 
@@ -248,6 +269,7 @@ class StreamingProcessor:
 
                     # Prepare output row
                     output_row = email_dict.copy()
+                    output_row["label"] = domain
                     output_row["classified_domain"] = domain
                     output_row["method1_domain"] = (
                         details["method1"]["domain"] or "none"
@@ -297,6 +319,7 @@ class StreamingProcessor:
                     # Still write to unsure if there's an error
                     try:
                         output_row = email_dict.copy()
+                        output_row["label"] = "unsure"
                         output_row["classified_domain"] = "unsure"
                         output_row["method1_domain"] = "error"
                         output_row["method2_domain"] = "error"
@@ -333,14 +356,28 @@ class StreamingProcessor:
         output_dir = Path(output_dir)
         summary = {}
 
-        for csv_file in output_dir.glob("email_*.csv"):
-            domain = csv_file.stem.replace("email_", "")
+        # Set field limit if needed
+        current_limit = csv.field_size_limit()
+        if self.allow_large_fields:
+            csv.field_size_limit(2**31 - 1)
 
-            # Count rows (excluding header)
-            with open(csv_file, "r", encoding="utf-8") as f:
-                count = sum(1 for _ in f) - 1
-
-            if count > 0:
-                summary[domain] = count
+        try:
+            for csv_file in output_dir.glob("email_*.csv"):
+                domain = csv_file.stem.replace("email_", "")
+                
+                try:
+                    with open(csv_file, "r", encoding="utf-8") as f:
+                        reader = csv.reader(f)
+                        # Count rows (excluding header)
+                        count = sum(1 for _ in reader) - 1
+                    
+                    if count > 0:
+                        summary[domain] = count
+                except Exception as e:
+                    self.logger.warning(f"Error counting rows for {csv_file}: {e}")
+                    
+        finally:
+            if self.allow_large_fields:
+                csv.field_size_limit(current_limit)
 
         return summary
