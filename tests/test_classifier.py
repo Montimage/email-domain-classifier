@@ -1,6 +1,7 @@
 """Tests for the main EmailClassifier."""
 
 import pytest
+
 from email_classifier import EmailClassifier, EmailData
 
 

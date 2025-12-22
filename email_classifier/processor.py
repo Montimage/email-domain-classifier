@@ -6,13 +6,13 @@ maintaining progress tracking and logging.
 """
 
 import csv
-import os
 import logging
-from pathlib import Path
-from datetime import datetime
-from typing import Dict, Generator, Optional, Callable, List
-from dataclasses import dataclass, field
+import os
 from collections import defaultdict
+from dataclasses import dataclass, field
+from datetime import datetime
+from pathlib import Path
+from typing import Callable, Dict, Generator, List, Optional
 
 from .classifier import EmailClassifier, EmailData
 from .domains import get_domain_names
@@ -20,7 +20,13 @@ from .domains import get_domain_names
 
 @dataclass
 class ProcessingStats:
-    """Statistics collected during processing."""
+    """Statistics collected during processing.
+
+    Enhanced statistics include:
+    - label_distributions: Original label values by classified domain
+    - url_distributions: URL presence (True/False) by domain
+    - cross_tabulation: Label x URL relationship matrix by domain
+    """
 
     total_processed: int = 0
     total_classified: int = 0
@@ -29,6 +35,17 @@ class ProcessingStats:
     errors: int = 0
     start_time: datetime = None
     end_time: datetime = None
+    label_distributions: Dict[str, Dict[str, int]] = field(
+        default_factory=lambda: defaultdict(lambda: defaultdict(int))
+    )
+    url_distributions: Dict[str, Dict[bool, int]] = field(
+        default_factory=lambda: defaultdict(lambda: defaultdict(int))
+    )
+    cross_tabulation: Dict[str, Dict[str, Dict[bool, int]]] = field(
+        default_factory=lambda: defaultdict(
+            lambda: defaultdict(lambda: defaultdict(int))
+        )
+    )
 
     def to_dict(self) -> Dict:
         """Convert stats to dictionary."""
@@ -40,9 +57,21 @@ class ProcessingStats:
             "errors": self.errors,
             "start_time": self.start_time.isoformat() if self.start_time else None,
             "end_time": self.end_time.isoformat() if self.end_time else None,
-            "duration_seconds": (self.end_time - self.start_time).total_seconds()
-            if self.start_time and self.end_time
-            else None,
+            "duration_seconds": (
+                (self.end_time - self.start_time).total_seconds()
+                if self.start_time and self.end_time
+                else None
+            ),
+            "label_distributions": {
+                k: dict(v) for k, v in self.label_distributions.items()
+            },
+            "url_distributions": {
+                k: dict(v) for k, v in self.url_distributions.items()
+            },
+            "cross_tabulation": {
+                k: {l: dict(v) for l, v in val.items()}
+                for k, val in self.cross_tabulation.items()
+            },
         }
 
 
@@ -107,7 +136,15 @@ class StreamingProcessor:
     """
 
     # Default expected CSV columns
-    EXPECTED_COLUMNS = ["sender", "receiver", "date", "subject", "body", "label", "urls"]
+    EXPECTED_COLUMNS = [
+        "sender",
+        "receiver",
+        "date",
+        "subject",
+        "body",
+        "label",
+        "urls",
+    ]
 
     def __init__(
         self,
@@ -148,7 +185,7 @@ class StreamingProcessor:
         finally:
             if self.allow_large_fields:
                 csv.field_size_limit(current_limit)
-        
+
         return count
 
     def _stream_emails(self, input_path: Path) -> Generator[Dict, None, None]:
@@ -158,7 +195,7 @@ class StreamingProcessor:
             if self.allow_large_fields:
                 # Temporarily increase field size limit for this file
                 current_limit = csv.field_size_limit()
-                csv.field_size_limit(2**31-1)  # Set to a very large limit (about 2GB)
+                csv.field_size_limit(2**31 - 1)  # Set to a very large limit (about 2GB)
                 self.logger.info(f"Field size limit set to: {current_limit}")
             else:
                 current_limit = None
@@ -173,15 +210,22 @@ class StreamingProcessor:
                         # but warning if other core columns are missing
                         critical_missing = missing - {"label"}
                         if critical_missing:
-                            self.logger.warning(f"Missing expected columns: {critical_missing}")
+                            self.logger.warning(
+                                f"Missing expected columns: {critical_missing}"
+                            )
 
                 for row in reader:
                     yield row
         except csv.Error as e:
             error_msg = str(e).lower()
-            if "field larger than field limit" in error_msg or "fieldsize limit" in error_msg:
+            if (
+                "field larger than field limit" in error_msg
+                or "fieldsize limit" in error_msg
+            ):
                 if self.allow_large_fields:
-                    self.logger.warning(f"Large CSV field detected. Processing continues with unlimited field size.")
+                    self.logger.warning(
+                        f"Large CSV field detected. Processing continues with unlimited field size."
+                    )
                 else:
                     self.logger.error(
                         f"✖ Error: Processing failed: field larger than field limit (131,072 characters)\n"
@@ -239,7 +283,7 @@ class StreamingProcessor:
         current_limit = csv.field_size_limit()
         # Start with standard columns in order
         fieldnames = self.EXPECTED_COLUMNS.copy()
-        
+
         try:
             if self.allow_large_fields:
                 csv.field_size_limit(2**31 - 1)  # Set to a very large limit
@@ -298,6 +342,20 @@ class StreamingProcessor:
                         self.stats.total_classified += 1
                     else:
                         self.stats.total_unsure += 1
+
+                    # Enhanced statistics collection
+                    original_label = email_dict.get("label", "unknown")
+                    self.stats.label_distributions[domain][original_label] += 1
+
+                    # Parse has_url value (handle various formats)
+                    has_url_value = email_dict.get("has_url", "false")
+                    if isinstance(has_url_value, str):
+                        has_url = has_url_value.lower() in ("true", "1", "yes", "on")
+                    else:
+                        has_url = bool(has_url_value)
+
+                    self.stats.url_distributions[domain][has_url] += 1
+                    self.stats.cross_tabulation[domain][original_label][has_url] += 1
 
                     # Log periodically
                     if (idx + 1) % self.chunk_size == 0:
@@ -364,18 +422,18 @@ class StreamingProcessor:
         try:
             for csv_file in output_dir.glob("email_*.csv"):
                 domain = csv_file.stem.replace("email_", "")
-                
+
                 try:
                     with open(csv_file, "r", encoding="utf-8") as f:
                         reader = csv.reader(f)
                         # Count rows (excluding header)
                         count = sum(1 for _ in reader) - 1
-                    
+
                     if count > 0:
                         summary[domain] = count
                 except Exception as e:
                     self.logger.warning(f"Error counting rows for {csv_file}: {e}")
-                    
+
         finally:
             if self.allow_large_fields:
                 csv.field_size_limit(current_limit)

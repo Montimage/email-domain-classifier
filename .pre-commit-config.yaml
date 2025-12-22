@@ -35,6 +35,18 @@ repos:
         additional_dependencies: [flake8-docstrings]
         args: [--max-line-length=88, --extend-ignore=E203,W503]
 
+  # - repo: https://github.com/xenon-python/xenon
+  #   rev: 0.9.0
+  #   hooks:
+  #     - id: xenon
+  #       args: [--max-average=A, --max-modules=B, --max-absolute=C]
+
+  - repo: https://github.com/radon-profile/radon
+    rev: v6.0.1
+    hooks:
+      - id: radon
+        args: [cc, --min=C]
+
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.8.0
     hooks:
@@ -61,8 +73,45 @@ repos:
       - id: pyupgrade
         args: [--py311-plus]
 
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: [--baseline, .secrets.baseline]
+
+  - repo: https://github.com/pycqa/pyproject-hooks
+    rev: v1.0.0
+    hooks:
+      - id: pyproject-build
+        args: [--wheel]
+
   - repo: local
     hooks:
+      - id: pip-audit
+        name: pip-audit
+        entry: pip-audit
+        language: system
+        args: [--requirement, requirements.txt, --format, json]
+
+      - id: trufflehog
+        name: trufflehog
+        entry: trufflehog
+        language: system
+        args: [--no-update, filesystem, ./]
+
+      - id: twine-check
+        name: twine-check
+        entry: twine check
+        language: system
+        args: [dist/*]
+        pass_filenames: false
+
+      - id: check-manifest
+        name: check-manifest
+        entry: check-manifest
+        language: system
+        args: [--verbose]
+
       - id: pytest-check
         name: pytest-check
         entry: pytest

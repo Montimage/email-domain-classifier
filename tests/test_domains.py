@@ -1,6 +1,7 @@
 """Tests for domain definitions and profiles."""
 
 import pytest
+
 from email_classifier.domains import DOMAINS, get_domain_names, get_domain_profile
 
 

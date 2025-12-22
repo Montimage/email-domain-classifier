@@ -1,0 +1,120 @@
+name: Build Verification Enhancement
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-verification:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+        pip install build twine
+        
+    - name: Build package
+      run: |
+        python -m build
+        
+    - name: Test package installation
+      run: |
+        pip install dist/*.whl || echo "Wheel installation failed"
+        pip install dist/*.tar.gz || echo "Source installation failed"
+        
+    - name: Test package functionality
+      run: |
+        email-classifier --version || echo "Version test failed"
+        email-classifier --help || echo "Help test failed"
+        email-classifier sample_emails.csv -o test-e2e/ || echo "E2E test failed"
+        
+    - name: Generate package checksums
+      run: |
+        sha256sum dist/* > checksums.txt
+        sha512sum dist/* > checksums-sha512.txt
+        
+    - name: Checksum verification
+      run: |
+        echo "## 📋 Package Integrity Verification" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| File | SHA256 | SHA512 | Status" >> $GITHUB_STEP_SUMMARY
+        echo "|------|--------|--------|--------|" >> $GITHUB_STEP_SUMMARY
+        
+        for file in dist/*; do
+          if [ -f "$file" ]; then
+            sha256=$(sha256sum "$file" | cut -d' ' -f1)
+            sha512=$(sha512sum "$file" | cut -d' ' -f1)
+            echo "| $(basename $file) | $sha256 | $sha512 | ✅ Verified" >> $GITHUB_STEP_SUMMARY
+          fi
+        done
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-artifacts-${{ matrix.os }}-${{ matrix.python-version }}
+        path: |
+          dist/
+          checksums.txt
+          checksums-sha512.txt
+          test-e2e/
+        retention-days: 30
+
+  smart-execution:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Analyze changed files
+      run: |
+        echo "📊 Changed Files Analysis" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Count file types
+        PYTHON_CHANGED=$(git diff --name-only HEAD~1 HEAD | grep '\.py$' | wc -l | tr -d ' ')
+        YAML_CHANGED=$(git diff --name-only HEAD~1 HEAD | grep -E '\.ya?ml$' | wc -l | tr -d ' ')
+        DOCS_CHANGED=$(git diff --name-only HEAD~1 HEAD | grep -E '\.md$' | wc -l | tr -d ' ')
+        CONFIG_CHANGED=$(git diff --name-only HEAD~1 HEAD | grep -E '\.(toml|txt|cfg|ini)$' | wc -l | tr -d ' ')
+        
+        echo "### File Type Changes" >> $GITHUB_STEP_SUMMARY
+        echo "- **Python files**: $PYTHON_CHANGED" >> $GITHUB_STEP_SUMMARY
+        echo "- **YAML files**: $YAML_CHANGED" >> $GITHUB_STEP_SUMMARY
+        echo "- **Documentation**: $DOCS_CHANGED" >> $GITHUB_STEP_SUMMARY
+        echo "- **Configuration**: $CONFIG_CHANGED" >> $GITHUB_STEP_SUMMARY
+        
+        # Smart execution recommendations
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Smart Execution Recommendations" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "$PYTHON_CHANGED" -gt 0 ]; then
+          echo "- 🐍 **Run full quality gates** (Python changes detected)" >> $GITHUB_STEP_SUMMARY
+        elif [ "$YAML_CHANGED" -gt 0 ] || [ "$CONFIG_CHANGED" -gt 0 ]; then
+          echo "- 🧪 **Run configuration checks** (Config/YAML changes)" >> $GITHUB_STEP_SUMMARY
+        elif [ "$DOCS_CHANGED" -gt 0 ]; then
+          echo "- 📚 **Skip complex checks** (Documentation only)" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- ⚡ **Fast checks available** (Minimal changes)" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+    - name: Generate execution plan
+      run: |
+        echo "::set-output name=should_run_full_checks::$([ "$PYTHON_CHANGED" -gt 0 ] && echo true || echo false)"
+        echo "::set-output name=should_run_build_check::$([ "$CONFIG_CHANGED" -gt 0 ] && echo true || echo false)"

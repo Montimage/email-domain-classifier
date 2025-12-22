@@ -14,14 +14,14 @@ Usage:
 import argparse
 import logging
 import sys
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 from .classifier import EmailClassifier
+from .domains import get_domain_names
 from .processor import StreamingProcessor
 from .reporter import ClassificationReporter, ReportConfig
-from .ui import get_ui, RICH_AVAILABLE
-from .domains import get_domain_names
+from .ui import RICH_AVAILABLE, get_ui
 
 
 def setup_logging(log_file: Path, verbose: bool = False) -> logging.Logger:
@@ -286,7 +286,9 @@ Output:
 
         # Display results in terminal
         if not args.quiet:
-            ui.print_domain_stats(dict(stats.domain_counts), stats.total_processed)
+            ui.print_domain_stats(
+                dict(stats.domain_counts), stats.total_processed, report
+            )
             ui.print_summary_panel(report)
 
             # Show output files

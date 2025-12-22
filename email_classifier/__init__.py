@@ -24,31 +24,31 @@ __email__ = "research@montimage.com"
 
 # Core classification classes
 from .classifier import (
+    ClassificationResult,
     EmailClassifier,
     EmailData,
-    ClassificationResult,
     KeywordTaxonomyClassifier,
     StructuralTemplateClassifier,
 )
 
-# Processing and reporting
-from .processor import StreamingProcessor, ProcessingStats
-from .reporter import ClassificationReporter, ReportConfig
+# CLI entry point
+from .cli import main
 
 # Domain definitions
 from .domains import (
     DOMAINS,
     DomainProfile,
+    get_all_profiles,
     get_domain_names,
     get_domain_profile,
-    get_all_profiles,
 )
 
-# UI components
-from .ui import get_ui, TerminalUI, SimpleUI, RICH_AVAILABLE
+# Processing and reporting
+from .processor import ProcessingStats, StreamingProcessor
+from .reporter import ClassificationReporter, ReportConfig
 
-# CLI entry point
-from .cli import main
+# UI components
+from .ui import RICH_AVAILABLE, SimpleUI, TerminalUI, get_ui
 
 # Public API
 __all__ = [
