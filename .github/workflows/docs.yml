@@ -75,7 +75,7 @@ jobs:
     
     steps:
     - name: Download documentation
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v7
       with:
         name: documentation
         path: docs/_build/html/
