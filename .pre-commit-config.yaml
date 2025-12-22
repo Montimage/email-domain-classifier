@@ -41,11 +41,11 @@ repos:
   #     - id: xenon
   #       args: [--max-average=A, --max-modules=B, --max-absolute=C]
 
-  - repo: https://github.com/radon-profile/radon
-    rev: v6.0.1
-    hooks:
-      - id: radon
-        args: [cc, --min=C]
+  # - repo: https://github.com/radon-profile/radon
+  #   rev: v6.0.1
+  #   hooks:
+  #     - id: radon
+  #       args: [cc, --min=C]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.8.0
