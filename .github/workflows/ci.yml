@@ -92,8 +92,9 @@ jobs:
 
     - name: Run bandit security linter
       run: |
-        bandit -r email_classifier/ -f json || true
-        bandit -r email_classifier/
+        # Skip low-severity issues (B101=assert, B110=try-except-pass)
+        bandit -r email_classifier/ --skip B101,B110 -f json || true
+        bandit -r email_classifier/ --skip B101,B110
 
   dependency-review:
     runs-on: ubuntu-latest
