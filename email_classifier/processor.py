@@ -13,7 +13,7 @@ from collections.abc import Callable, Generator
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import IO, Any, Dict, List, Optional
 
 from .classifier import EmailClassifier, EmailData
 from .domains import get_domain_names
@@ -41,8 +41,8 @@ class ProcessingStats:
     total_unsure: int = 0
     domain_counts: dict[str, int] = field(default_factory=lambda: defaultdict(int))
     errors: int = 0
-    start_time: datetime = None
-    end_time: datetime = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
     label_distributions: dict[str, dict[str, int]] = field(
         default_factory=lambda: defaultdict(lambda: defaultdict(int))
     )
@@ -111,11 +111,11 @@ class OutputManager:
 
     def __init__(
         self, output_dir: Path, fieldnames: list[str], include_details: bool = False
-    ):
+    ) -> None:
         self.output_dir = output_dir
         self.include_details = include_details
-        self.files = {}
-        self.writers = {}
+        self.files: dict[str, IO[str]] = {}
+        self.writers: dict[str, csv.DictWriter[str]] = {}
 
         # Build ordered fieldnames
         self.fieldnames = self._build_fieldnames(fieldnames, include_details)
@@ -137,7 +137,7 @@ class OutputManager:
                 fieldnames.append(col)
         return fieldnames
 
-    def _get_writer(self, domain: str):
+    def _get_writer(self, domain: str) -> csv.DictWriter[str]:
         """Get or create CSV writer for domain."""
         if domain not in self.writers:
             filename = f"email_{domain}.csv"
@@ -153,13 +153,13 @@ class OutputManager:
 
         return self.writers[domain]
 
-    def write_email(self, domain: str, email_data: dict):
+    def write_email(self, domain: str, email_data: dict[str, Any]) -> None:
         """Write email to appropriate domain file."""
         writer = self._get_writer(domain)
         writer.writerow(email_data)
         self.files[domain].flush()
 
-    def close_all(self):
+    def close_all(self) -> None:
         """Close all open files."""
         for file in self.files.values():
             file.close()
@@ -206,13 +206,13 @@ class StreamingProcessor:
 
     def __init__(
         self,
-        classifier: EmailClassifier = None,
+        classifier: EmailClassifier | None = None,
         chunk_size: int = 1000,
-        logger: logging.Logger = None,
+        logger: logging.Logger | None = None,
         allow_large_fields: bool = True,
         strict_validation: bool = False,
         max_body_length: int | None = None,
-    ):
+    ) -> None:
         self.classifier = classifier or EmailClassifier()
         self.chunk_size = chunk_size
         self.logger = logger or logging.getLogger(__name__)

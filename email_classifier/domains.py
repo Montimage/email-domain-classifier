@@ -4,7 +4,7 @@ Domain definitions, keyword taxonomies, and structural templates for email class
 
 import re
 from dataclasses import dataclass, field
-from typing import Dict, List, Set
+from typing import Dict, List, Optional, Set
 
 
 @dataclass
@@ -16,10 +16,10 @@ class DomainProfile:
     color: str  # For terminal UI
 
     # Method 1: Keyword Taxonomy
-    primary_keywords: Set[str] = field(default_factory=set)
-    secondary_keywords: Set[str] = field(default_factory=set)
-    sender_patterns: List[str] = field(default_factory=list)
-    subject_patterns: List[str] = field(default_factory=list)
+    primary_keywords: set[str] = field(default_factory=set)
+    secondary_keywords: set[str] = field(default_factory=set)
+    sender_patterns: list[str] = field(default_factory=list)
+    subject_patterns: list[str] = field(default_factory=list)
 
     # Method 2: Structural Templates
     typical_body_length: tuple = (100, 2000)  # min, max chars
@@ -35,7 +35,7 @@ class DomainProfile:
 # DOMAIN PROFILES
 # ═══════════════════════════════════════════════════════════════════════════════
 
-DOMAINS: Dict[str, DomainProfile] = {
+DOMAINS: dict[str, DomainProfile] = {
     "finance": DomainProfile(
         name="finance",
         display_name="💰 Finance",
@@ -798,16 +798,16 @@ DOMAINS: Dict[str, DomainProfile] = {
 }
 
 
-def get_domain_names() -> List[str]:
+def get_domain_names() -> list[str]:
     """Return list of all domain names."""
     return list(DOMAINS.keys())
 
 
-def get_domain_profile(domain: str) -> DomainProfile:
+def get_domain_profile(domain: str) -> DomainProfile | None:
     """Get profile for a specific domain."""
     return DOMAINS.get(domain)
 
 
-def get_all_profiles() -> Dict[str, DomainProfile]:
+def get_all_profiles() -> dict[str, DomainProfile]:
     """Return all domain profiles."""
     return DOMAINS.copy()

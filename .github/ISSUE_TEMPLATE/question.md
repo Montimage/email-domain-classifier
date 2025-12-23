@@ -19,9 +19,9 @@ Describe what you're trying to achieve with the Email Domain Classifier.
 ### What have you tried so far?
 List the approaches, commands, or code you've tried:
 
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 ### Code Example
 If applicable, share relevant code snippets:

@@ -9,7 +9,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from .domains import DOMAINS
 from .processor import ProcessingStats
@@ -35,14 +35,14 @@ class ClassificationReporter:
     - Markdown (for documentation)
     """
 
-    def __init__(self, config: ReportConfig = None):
+    def __init__(self, config: ReportConfig | None = None) -> None:
         self.config = config or ReportConfig()
 
     def generate_report(
-        self, stats: ProcessingStats, output_dir: Path, input_file: str = None
-    ) -> dict:
+        self, stats: ProcessingStats, output_dir: Path, input_file: str | None = None
+    ) -> dict[str, Any]:
         """Generate full report from processing statistics."""
-        report = {
+        report: dict[str, Any] = {
             "meta": {
                 "generated_at": datetime.now().isoformat(),
                 "input_file": input_file,
@@ -70,7 +70,7 @@ class ClassificationReporter:
 
         return report
 
-    def _generate_summary(self, stats: ProcessingStats) -> dict:
+    def _generate_summary(self, stats: "ProcessingStats") -> dict:
         """Generate summary statistics."""
         classification_rate = (
             stats.total_classified / stats.total_processed * 100
@@ -331,10 +331,10 @@ class ClassificationReporter:
         original label value with URLs present vs. URLs absent, enabling
         deeper analysis of classification patterns.
         """
-        analysis = {}
+        analysis: dict[str, Any] = {}
 
         for domain, label_data in stats.cross_tabulation.items():
-            domain_analysis = {}
+            domain_analysis: dict[str, dict[str, int | float]] = {}
             total_in_domain = 0
 
             # Calculate totals first
@@ -354,12 +354,12 @@ class ClassificationReporter:
                     data["with_urls_percentage"] = (
                         round(data["with_urls"] / data["total"] * 100, 2)
                         if data["total"] > 0
-                        else 0
+                        else 0.0
                     )
                     data["without_urls_percentage"] = (
                         round(data["without_urls"] / data["total"] * 100, 2)
                         if data["total"] > 0
-                        else 0
+                        else 0.0
                     )
                     data["percentage_of_domain"] = round(
                         data["total"] / total_in_domain * 100, 2
@@ -372,12 +372,12 @@ class ClassificationReporter:
 
         return analysis
 
-    def save_json_report(self, report: dict, output_path: Path):
+    def save_json_report(self, report: dict, output_path: Path) -> None:
         """Save report as JSON file."""
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(report, f, indent=2)
 
-    def save_text_report(self, report: dict, output_path: Path):
+    def save_text_report(self, report: dict, output_path: Path) -> None:
         """Save report as formatted text with ASCII visualization."""
         lines = []
 

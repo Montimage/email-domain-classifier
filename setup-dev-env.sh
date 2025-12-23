@@ -38,7 +38,7 @@ echo "🛡️  Testing security tools..."
 detect-secrets --baseline .secrets.baseline email_classifier/ --exclude-lines ".*test.*"
 pip-audit --requirement requirements.txt
 
-# Test quality tools  
+# Test quality tools
 echo "📊 Testing quality tools..."
 xenon --max-average=A --max-modules=B --max-absolute=C email_classifier/
 radon cc --min=C email_classifier/
@@ -53,7 +53,7 @@ echo "✅ Development environment setup complete!"
 echo ""
 echo "🎯 Next steps:"
 echo "  1. Run 'pre-commit run --all-files' to test all hooks"
-echo "  2. Make your changes and commit normally" 
+echo "  2. Make your changes and commit normally"
 echo "  3. Check 'make help' for available commands (if Makefile exists)"
 echo ""
 echo "🔧 All quality gates are now active and will run automatically on commits."

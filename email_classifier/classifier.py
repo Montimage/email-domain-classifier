@@ -5,8 +5,9 @@ Email classifier implementing two classification methods:
 """
 
 import re
-from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Tuple
 
 from .domains import DOMAINS, DomainProfile, get_domain_names
 
@@ -15,11 +16,11 @@ from .domains import DOMAINS, DomainProfile, get_domain_names
 class ClassificationResult:
     """Result of a single classification method."""
 
-    domain: Optional[str]
+    domain: str | None
     confidence: float
-    scores: Dict[str, float]
+    scores: dict[str, float]
     method: str
-    details: Dict[str, any] = None
+    details: dict[str, Any] | None = field(default=None)
 
 
 @dataclass
@@ -39,7 +40,7 @@ class EmailData:
         return bool(self.urls and self.urls.strip())
 
     @classmethod
-    def from_dict(cls, data: Dict) -> "EmailData":
+    def from_dict(cls, data: dict) -> "EmailData":
         """Create EmailData from dictionary."""
         # Handle both 'urls' and 'has_url' fields
         urls_value = data.get("urls", "")
@@ -75,11 +76,11 @@ class KeywordTaxonomyClassifier:
         "body_keyword_density": 2.0,
     }
 
-    def __init__(self, domains: Dict[str, DomainProfile] = None):
+    def __init__(self, domains: dict[str, DomainProfile] | None = None) -> None:
         self.domains = domains or DOMAINS
         self._compile_patterns()
 
-    def _compile_patterns(self):
+    def _compile_patterns(self) -> None:
         """Pre-compile regex patterns for efficiency."""
         self._sender_patterns = {}
         self._subject_patterns = {}
@@ -110,8 +111,10 @@ class KeywordTaxonomyClassifier:
             normalized = scores
 
         # Find best match
+        best_domain: str | None = None
+        confidence: float = 0.0
         if scores:
-            best_domain = max(scores, key=scores.get)
+            best_domain = max(scores, key=lambda k: scores[k])
             best_score = scores[best_domain]
             confidence = normalized.get(best_domain, 0)
 
@@ -119,9 +122,6 @@ class KeywordTaxonomyClassifier:
             if confidence < 0.05 or best_score < 1.5:
                 best_domain = None
                 confidence = 0.0
-        else:
-            best_domain = None
-            confidence = 0.0
 
         return ClassificationResult(
             domain=best_domain,
@@ -133,10 +133,10 @@ class KeywordTaxonomyClassifier:
 
     def _score_domain(
         self, email: EmailData, domain_name: str, profile: DomainProfile
-    ) -> Tuple[float, Dict]:
+    ) -> tuple[float, dict[str, Any]]:
         """Calculate score for a specific domain."""
         score = 0.0
-        details = {
+        details: dict[str, Any] = {
             "primary_matches": [],
             "secondary_matches": [],
             "sender_match": False,
@@ -266,7 +266,7 @@ class StructuralTemplateClassifier:
         "!!",
     ]
 
-    def __init__(self, domains: Dict[str, DomainProfile] = None):
+    def __init__(self, domains: dict[str, DomainProfile] | None = None) -> None:
         self.domains = domains or DOMAINS
 
     def classify(self, email: EmailData) -> ClassificationResult:
@@ -290,8 +290,10 @@ class StructuralTemplateClassifier:
             normalized = scores
 
         # Find best match
+        best_domain: str | None = None
+        confidence: float = 0.0
         if scores:
-            best_domain = max(scores, key=scores.get)
+            best_domain = max(scores, key=lambda k: scores[k])
             best_score = scores[best_domain]
             confidence = normalized.get(best_domain, 0)
 
@@ -299,9 +301,6 @@ class StructuralTemplateClassifier:
             if confidence < 0.04 or best_score < 2.0:
                 best_domain = None
                 confidence = 0.0
-        else:
-            best_domain = None
-            confidence = 0.0
 
         return ClassificationResult(
             domain=best_domain,
@@ -311,7 +310,7 @@ class StructuralTemplateClassifier:
             details={"features": features, "domain_scores": details},
         )
 
-    def _extract_features(self, email: EmailData) -> Dict:
+    def _extract_features(self, email: EmailData) -> dict[str, Any]:
         """Extract structural features from email."""
         body = email.body
 
@@ -357,9 +356,9 @@ class StructuralTemplateClassifier:
             "sender": sender_features,
         }
 
-    def _analyze_sender_structure(self, sender: str) -> Dict:
+    def _analyze_sender_structure(self, sender: str) -> dict[str, Any]:
         """Analyze sender address structure."""
-        features = {
+        features: dict[str, Any] = {
             "is_noreply": False,
             "has_department": False,
             "domain_type": "unknown",
@@ -396,11 +395,11 @@ class StructuralTemplateClassifier:
         return features
 
     def _score_template_match(
-        self, features: Dict, profile: DomainProfile
-    ) -> Tuple[float, Dict]:
+        self, features: dict[str, Any], profile: DomainProfile
+    ) -> tuple[float, dict[str, Any]]:
         """Score how well features match a domain template."""
         score = 0.0
-        details = {}
+        details: dict[str, Any] = {}
 
         # Body length match
         min_len, max_len = profile.typical_body_length
@@ -506,12 +505,12 @@ class EmailClassifier:
     WEIGHT_METHOD_2 = 0.4  # Structure
     GLOBAL_THRESHOLD = 0.15
 
-    def __init__(self, domains: Dict[str, DomainProfile] = None):
+    def __init__(self, domains: dict[str, DomainProfile] | None = None) -> None:
         self.domains = domains or DOMAINS
         self.method1 = KeywordTaxonomyClassifier(self.domains)
         self.method2 = StructuralTemplateClassifier(self.domains)
 
-    def classify(self, email: EmailData) -> Tuple[str, Dict]:
+    def classify(self, email: EmailData) -> tuple[str, dict[str, Any]]:
         """
         Classify email using dual-method validation with weighted scoring.
 
@@ -556,7 +555,7 @@ class EmailClassifier:
 
         # Find best match
         if combined_scores:
-            best_domain = max(combined_scores, key=combined_scores.get)
+            best_domain = max(combined_scores, key=lambda k: combined_scores[k])
             best_score = combined_scores[best_domain]
 
             details["final_confidence"] = best_score
@@ -572,7 +571,7 @@ class EmailClassifier:
 
         return final_domain, details
 
-    def classify_dict(self, email_dict: Dict) -> Tuple[str, Dict]:
+    def classify_dict(self, email_dict: dict[str, Any]) -> tuple[str, dict[str, Any]]:
         """Classify email from dictionary input."""
         email = EmailData.from_dict(email_dict)
         return self.classify(email)

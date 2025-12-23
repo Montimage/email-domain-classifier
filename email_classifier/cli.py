@@ -111,7 +111,12 @@ def cmd_info(args: argparse.Namespace) -> int:
                             task_id, completed=current, description=f"[cyan]{status}"
                         )
 
-            with progress:
+            if progress is not None:
+                with progress:
+                    result = analyzer.analyze(
+                        input_path, progress_callback=rich_progress
+                    )
+            else:
                 result = analyzer.analyze(input_path, progress_callback=rich_progress)
         else:
             result = analyzer.analyze(input_path, progress_callback=progress_callback)
@@ -215,7 +220,15 @@ def cmd_classify(args: argparse.Namespace) -> int:
                             task_id, completed=current, description=f"[cyan]{status}"
                         )
 
-            with progress:
+            if progress is not None:
+                with progress:
+                    stats = processor.process(
+                        input_path=input_path,
+                        output_dir=output_dir,
+                        progress_callback=progress_callback,
+                        include_details=args.include_details,
+                    )
+            else:
                 stats = processor.process(
                     input_path=input_path,
                     output_dir=output_dir,

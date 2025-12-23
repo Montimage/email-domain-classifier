@@ -21,26 +21,26 @@ How do you envision this feature working? Please provide as much detail as possi
 ### API/Interface Changes
 - [ ] New CLI option: `--new-option`
 - [ ] New Python API method: `new_method()`
-- [ ] Changes to existing methods: 
-- [ ] Other: 
+- [ ] Changes to existing methods:
+- [ ] Other:
 
 ### Configuration Changes
-- [ ] New configuration file option: 
-- [ ] New environment variables: 
-- [ ] New default values: 
+- [ ] New configuration file option:
+- [ ] New environment variables:
+- [ ] New default values:
 
 ## Use Cases
 Describe specific scenarios where this feature would be useful:
 
-1. **Use Case 1**: 
-   - **Who**: 
-   - **What they need**: 
-   - **Why important**: 
+1. **Use Case 1**:
+   - **Who**:
+   - **What they need**:
+   - **Why important**:
 
-2. **Use Case 2**: 
-   - **Who**: 
-   - **What they need**: 
-   - **Why important**: 
+2. **Use Case 2**:
+   - **Who**:
+   - **What they need**:
+   - **Why important**:
 
 ## Alternatives Considered
 What other approaches or solutions have you considered? Why do you prefer your proposed solution?
@@ -87,6 +87,6 @@ Please confirm the following:
 How important is this feature to you?
 
 - [ ] Critical - blocking my workflow
-- [ ] High - would greatly improve my experience  
+- [ ] High - would greatly improve my experience
 - [ ] Medium - nice to have
 - [ ] Low - convenience feature

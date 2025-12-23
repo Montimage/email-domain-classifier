@@ -53,12 +53,12 @@ flowchart TD
     Process --> Classify[Classify Domains]
     Classify --> Generate[Generate Reports]
     Generate --> Output[Domain Files & Reports]
-    
+
     %% Styling
     classDef input fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
     classDef process fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
     classDef output fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
-    
+
     class Input input
     class Validate,Process,Classify,Generate process
     class Output output

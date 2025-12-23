@@ -59,10 +59,10 @@ email-cli --version
    # Format code
    black .
    isort .
-   
+
    # Type checking
    mypy email_classifier/
-   
+
    # Run tests
    pytest
    ```
@@ -71,7 +71,7 @@ email-cli --version
    ```bash
    # Run all tests with coverage
    pytest --cov=email_classifier --cov-report=html
-   
+
    # Test CLI functionality
    email-cli sample_emails.csv -o test_output/ --verbose
    ```
@@ -224,9 +224,9 @@ What should happen
 What actually happens
 
 ## Environment
-- Python version: 
-- OS: 
-- Package version: 
+- Python version:
+- OS:
+- Package version:
 
 ## Additional Context
 Any other relevant information
@@ -311,7 +311,7 @@ Releases are managed by maintainers following semantic versioning:
 Current development priorities:
 
 1. **Bug fixes** and stability improvements
-2. **New domain classifications** 
+2. **New domain classifications**
 3. **Performance optimizations**
 4. **Documentation improvements**
 5. **Developer experience enhancements**

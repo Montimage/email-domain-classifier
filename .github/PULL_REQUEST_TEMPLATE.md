@@ -30,15 +30,15 @@ Related to #
 
 ### Files Modified
 <!-- List files that were modified -->
-- 
+-
 
 ### Files Added
 <!-- List new files that were added -->
-- 
+-
 
 ### Files Removed
 <!-- List files that were removed -->
-- 
+-
 
 ## Testing
 <!-- Describe how you tested your changes -->
@@ -138,7 +138,7 @@ from email_classifier import EmailClassifier
 
 ### Performance Benchmarks
 <!-- If relevant, include performance measurements -->
-<!-- 
+<!--
 Before: X seconds
 After: Y seconds
 Improvement: Z%
@@ -147,30 +147,30 @@ Improvement: Z%
 ## Reviewer Guidance
 <!-- What should reviewers focus on when reviewing this PR? -->
 
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 ## Release Notes
 <!-- If this is a user-facing change, add release notes -->
 
 ### Added
-- 
+-
 
 ### Changed
-- 
+-
 
 ### Fixed
-- 
+-
 
 ### Deprecated
-- 
+-
 
 ### Removed
-- 
+-
 
 ### Security
-- 
+-
 
 ---
 

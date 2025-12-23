@@ -5,10 +5,15 @@ Provides a polished, visually distinctive CLI experience using
 the Rich library for beautiful terminal output.
 """
 
+from __future__ import annotations
+
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+
+if TYPE_CHECKING:
+    from .analyzer import AnalysisResult
 
 try:
     from rich import box
@@ -70,15 +75,15 @@ class TerminalUI:
     - Formatted tables and panels
     """
 
-    def __init__(self, quiet: bool = False):
+    def __init__(self, quiet: bool = False) -> None:
         self.quiet = quiet
 
         if RICH_AVAILABLE and not quiet:
-            self.console = Console(theme=CLASSIFIER_THEME)
+            self.console: Console | None = Console(theme=CLASSIFIER_THEME)
         else:
             self.console = None
 
-    def print_banner(self):
+    def print_banner(self) -> None:
         """Display application banner."""
         if self.quiet or not self.console:
             return
@@ -99,7 +104,9 @@ class TerminalUI:
 """
         self.console.print(banner, style="bold cyan")
 
-    def print_config(self, input_file: str, output_dir: str, options: dict = None):
+    def print_config(
+        self, input_file: str, output_dir: str, options: dict[str, Any] | None = None
+    ) -> None:
         """Display configuration panel."""
         if self.quiet or not self.console:
             return
@@ -148,9 +155,9 @@ class TerminalUI:
         self,
         domain_counts: dict[str, int],
         total: int,
-        enhanced_stats: dict | None = None,
+        enhanced_stats: dict[str, Any] | None = None,
         input_file: str | None = None,
-    ):
+    ) -> None:
         """Display domain statistics table."""
         if self.quiet or not self.console:
             return
@@ -307,7 +314,7 @@ class TerminalUI:
             self.console.print(enhanced_table)
             self.console.print()
 
-    def print_summary_panel(self, stats: dict):
+    def print_summary_panel(self, stats: dict[str, Any]) -> None:
         """Display final summary panel."""
         if self.quiet or not self.console:
             return
@@ -391,7 +398,7 @@ class TerminalUI:
 
         self.console.print(panel)
 
-    def print_output_files(self, output_dir: Path, file_counts: dict[str, int]):
+    def print_output_files(self, output_dir: Path, file_counts: dict[str, int]) -> None:
         """Display list of output files created."""
         if self.quiet or not self.console:
             return
@@ -421,7 +428,7 @@ class TerminalUI:
             f"  📂 All files saved to: [bold cyan]{output_dir}[/bold cyan]\n"
         )
 
-    def print_recommendations(self, recommendations: list[str]):
+    def print_recommendations(self, recommendations: list[str]) -> None:
         """Display recommendations panel."""
         if self.quiet or not self.console or not recommendations:
             return
@@ -441,28 +448,28 @@ class TerminalUI:
 
         self.console.print(panel)
 
-    def print_error(self, message: str):
+    def print_error(self, message: str) -> None:
         """Display error message."""
         if self.console:
             self.console.print(f"\n[bold red]✖ Error:[/bold red] {message}\n")
         else:
             print(f"\nError: {message}\n", file=sys.stderr)
 
-    def print_warning(self, message: str):
+    def print_warning(self, message: str) -> None:
         """Display warning message."""
         if self.console:
             self.console.print(f"[yellow]⚠ Warning:[/yellow] {message}")
         else:
             print(f"Warning: {message}", file=sys.stderr)
 
-    def print_success(self, message: str):
+    def print_success(self, message: str) -> None:
         """Display success message."""
         if self.console:
             self.console.print(f"[bold green]✔[/bold green] {message}")
         else:
             print(f"✓ {message}")
 
-    def print_info(self, message: str):
+    def print_info(self, message: str) -> None:
         """Display info message."""
         if self.console:
             self.console.print(f"[cyan]ℹ[/cyan] {message}")
@@ -481,7 +488,7 @@ class TerminalUI:
         response = input().strip().lower()
         return response in ("y", "yes")
 
-    def print_analysis_report(self, result: "AnalysisResult") -> None:
+    def print_analysis_report(self, result: AnalysisResult) -> None:
         """Display dataset analysis report with charts.
 
         Args:
@@ -489,8 +496,6 @@ class TerminalUI:
         """
         if self.quiet or not self.console:
             return
-
-        from .analyzer import AnalysisResult  # noqa: F811
 
         # Header panel
         self._print_analysis_header(result)
@@ -504,9 +509,9 @@ class TerminalUI:
         # Data quality
         self._print_data_quality(result)
 
-    def _print_analysis_header(self, result: "AnalysisResult") -> None:
+    def _print_analysis_header(self, result: AnalysisResult) -> None:
         """Print file metadata header."""
-        from .analyzer import AnalysisResult  # noqa: F811
+        assert self.console is not None  # Called only from print_analysis_report
 
         # Format file size
         size_bytes = result.file_size_bytes
@@ -538,8 +543,9 @@ class TerminalUI:
         self.console.print(panel)
         self.console.print()
 
-    def _print_label_distribution(self, result: "AnalysisResult") -> None:
+    def _print_label_distribution(self, result: AnalysisResult) -> None:
         """Print label distribution bar chart."""
+        assert self.console is not None  # Called only from print_analysis_report
         if not result.label_counts:
             return
 
@@ -589,8 +595,9 @@ class TerminalUI:
         self.console.print(table)
         self.console.print()
 
-    def _print_body_and_domains(self, result: "AnalysisResult") -> None:
+    def _print_body_and_domains(self, result: AnalysisResult) -> None:
         """Print body length histogram and sender domains."""
+        assert self.console is not None  # Called only from print_analysis_report
         # Create a layout with two columns
         from rich.columns import Columns
 
@@ -666,8 +673,9 @@ class TerminalUI:
         self.console.print(Columns([body_panel, domain_panel], equal=True))
         self.console.print()
 
-    def _print_data_quality(self, result: "AnalysisResult") -> None:
+    def _print_data_quality(self, result: AnalysisResult) -> None:
         """Print data quality summary."""
+        assert self.console is not None  # Called only from print_analysis_report
         content = Text()
         content.append("🔍 Data Quality Summary\n\n", style="bold cyan")
 
@@ -764,17 +772,19 @@ class TerminalUI:
 class SimpleUI:
     """Fallback simple UI when Rich is not available."""
 
-    def __init__(self, quiet: bool = False):
+    def __init__(self, quiet: bool = False) -> None:
         self.quiet = quiet
 
-    def print_banner(self):
+    def print_banner(self) -> None:
         if self.quiet:
             return
         print("\n" + "=" * 60)
         print("       EMAIL DOMAIN CLASSIFIER v1.0")
         print("=" * 60 + "\n")
 
-    def print_config(self, input_file: str, output_dir: str, options: dict = None):
+    def print_config(
+        self, input_file: str, output_dir: str, options: dict[str, Any] | None = None
+    ) -> None:
         if self.quiet:
             return
         print(f"Input:  {input_file}")
@@ -784,7 +794,7 @@ class SimpleUI:
                 print(f"{k}: {v}")
         print()
 
-    def print_progress(self, current: int, total: int, status: str = ""):
+    def print_progress(self, current: int, total: int, status: str = "") -> None:
         if self.quiet:
             return
         pct = current / total * 100 if total > 0 else 0
@@ -795,7 +805,13 @@ class SimpleUI:
         if current >= total:
             print()
 
-    def print_domain_stats(self, domain_counts: dict[str, int], total: int):
+    def print_domain_stats(
+        self,
+        domain_counts: dict[str, int],
+        total: int,
+        enhanced_stats: dict[str, Any] | None = None,
+        input_file: str | None = None,
+    ) -> None:
         if self.quiet:
             return
         print("\n" + "-" * 50)
@@ -806,20 +822,56 @@ class SimpleUI:
             print(f"  {domain:<20} {count:>8,} ({pct:>5.1f}%)")
         print("-" * 50 + "\n")
 
-    def print_error(self, message: str):
+    def print_summary_panel(self, stats: dict[str, Any]) -> None:
+        """Display final summary panel (simple version)."""
+        if self.quiet:
+            return
+        summary = stats.get("summary", {})
+        timing = stats.get("timing", {})
+        print("\n" + "-" * 50)
+        print("Summary:")
+        print(f"  Total: {summary.get('total_emails', 0):,}")
+        print(f"  Classified: {summary.get('classified', 0):,}")
+        print(f"  Unsure: {summary.get('unsure', 0):,}")
+        print(f"  Duration: {timing.get('duration_seconds', 0):.2f}s")
+        print("-" * 50 + "\n")
+
+    def print_output_files(self, output_dir: Path, file_counts: dict[str, int]) -> None:
+        """Display list of output files created (simple version)."""
+        if self.quiet:
+            return
+        print("\nOutput Files:")
+        for domain, count in sorted(file_counts.items()):
+            print(f"  email_{domain}.csv: {count:,} emails")
+        print(f"\nFiles saved to: {output_dir}\n")
+
+    def print_recommendations(self, recommendations: list[str]) -> None:
+        """Display recommendations (simple version)."""
+        if self.quiet or not recommendations:
+            return
+        print("\nRecommendations:")
+        for i, rec in enumerate(recommendations, 1):
+            print(f"  {i}. {rec}")
+        print()
+
+    def create_progress(self) -> None:
+        """No-op for simple UI - progress not supported."""
+        return None
+
+    def print_error(self, message: str) -> None:
         print(f"ERROR: {message}", file=sys.stderr)
 
-    def print_warning(self, message: str):
+    def print_warning(self, message: str) -> None:
         print(f"WARNING: {message}", file=sys.stderr)
 
-    def print_success(self, message: str):
+    def print_success(self, message: str) -> None:
         print(f"✓ {message}")
 
-    def print_info(self, message: str):
+    def print_info(self, message: str) -> None:
         if not self.quiet:
             print(f"ℹ {message}")
 
-    def print_analysis_report(self, result: "AnalysisResult") -> None:
+    def print_analysis_report(self, result: AnalysisResult) -> None:
         """Display dataset analysis report (simple version)."""
         if self.quiet:
             return
@@ -866,7 +918,7 @@ class SimpleUI:
         print("=" * 60 + "\n")
 
 
-def get_ui(quiet: bool = False) -> TerminalUI:
+def get_ui(quiet: bool = False) -> TerminalUI | SimpleUI:
     """Get appropriate UI based on available libraries."""
     if RICH_AVAILABLE:
         return TerminalUI(quiet=quiet)

@@ -22,17 +22,17 @@ permissions:
 jobs:
   build-docs:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
-        
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: "3.11"
-        
+
     - name: Cache pip dependencies
       uses: actions/cache@v5
       with:
@@ -41,23 +41,23 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-docs-
           ${{ runner.os }}-pip-
-          
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -e ".[dev]"
         pip install sphinx sphinx-rtd-theme myst-parser sphinx-autodoc-typehints
-        
+
     - name: Build documentation
       run: |
         cd docs
         make html
-        
+
     - name: Check documentation build
       run: |
         cd docs/_build/html
         ls -la
-        
+
     - name: Upload documentation artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -72,58 +72,58 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    
+
     steps:
     - name: Download documentation
       uses: actions/download-artifact@v7
       with:
         name: documentation
         path: docs/_build/html/
-        
+
     - name: Setup Pages
       uses: actions/configure-pages@v5
-      
+
     - name: Upload to GitHub Pages
       uses: actions/upload-pages-artifact@v4
       with:
         path: docs/_build/html/
-        
+
     - name: Deploy to GitHub Pages
       id: deployment
       uses: actions/deploy-pages@v4
 
   test-docs:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: "3.11"
-        
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -e ".[dev]"
         pip install sphinx sphinx-rtd-theme myst-parser sphinx-autodoc-typehints doc8
-        
+
     - name: Test documentation build
       run: |
         cd docs
         make html
-        
+
     - name: Check documentation style
       run: |
         doc8 docs/ --max-line-length 88
-        
+
     - name: Check for broken links
       run: |
         pip install sphinx.ext.doctest
         cd docs
         sphinx-build -b linkcheck . _build/linkcheck || true
-        
+
     - name: Verify API docs completeness
       run: |
         cd docs

@@ -9,7 +9,7 @@ import csv
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import IO, Any, Dict, List, Literal, Optional, Tuple
 
 
 @dataclass
@@ -171,18 +171,18 @@ class InvalidEmailWriter:
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.filepath = self.output_dir / "invalid_emails.csv"
         self.fieldnames = list(fieldnames) + ["validation_errors"]
-        self.file = None
-        self.writer = None
+        self.file: IO[str] | None = None
+        self.writer: csv.DictWriter[str] | None = None
         self.stats = ValidationStats()
 
-    def _ensure_writer(self):
+    def _ensure_writer(self) -> None:
         """Create CSV writer if not already created."""
         if self.writer is None:
             self.file = open(self.filepath, "w", newline="", encoding="utf-8")
             self.writer = csv.DictWriter(self.file, fieldnames=self.fieldnames)
             self.writer.writeheader()
 
-    def write(self, email_dict: dict, errors: list[str]) -> None:
+    def write(self, email_dict: dict[str, Any], errors: list[str]) -> None:
         """
         Write an invalid email record to the CSV file.
 
@@ -193,15 +193,17 @@ class InvalidEmailWriter:
         self._ensure_writer()
 
         # Prepare row with original data plus errors
-        row = {
+        row: dict[str, Any] = {
             k: email_dict.get(k, "")
             for k in self.fieldnames
             if k != "validation_errors"
         }
         row["validation_errors"] = "|".join(errors)
 
-        self.writer.writerow(row)
-        self.file.flush()
+        if self.writer is not None:
+            self.writer.writerow(row)
+        if self.file is not None:
+            self.file.flush()
 
         # Update statistics
         self.stats.total_invalid += 1
@@ -230,10 +232,10 @@ class InvalidEmailWriter:
         """Get validation statistics."""
         return self.stats
 
-    def __enter__(self):
+    def __enter__(self) -> "InvalidEmailWriter":
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> Literal[False]:
         self.close()
         return False
 
@@ -257,18 +259,18 @@ class SkippedEmailWriter:
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.filepath = self.output_dir / "skipped_emails.csv"
         self.fieldnames = list(fieldnames) + ["skip_reason"]
-        self.file = None
-        self.writer = None
+        self.file: IO[str] | None = None
+        self.writer: csv.DictWriter[str] | None = None
         self.stats = SkippedStats()
 
-    def _ensure_writer(self):
+    def _ensure_writer(self) -> None:
         """Create CSV writer if not already created."""
         if self.writer is None:
             self.file = open(self.filepath, "w", newline="", encoding="utf-8")
             self.writer = csv.DictWriter(self.file, fieldnames=self.fieldnames)
             self.writer.writeheader()
 
-    def write(self, email_dict: dict, reason: str) -> None:
+    def write(self, email_dict: dict[str, Any], reason: str) -> None:
         """
         Write a skipped email record to the CSV file.
 
@@ -279,11 +281,15 @@ class SkippedEmailWriter:
         self._ensure_writer()
 
         # Prepare row with original data plus reason
-        row = {k: email_dict.get(k, "") for k in self.fieldnames if k != "skip_reason"}
+        row: dict[str, Any] = {
+            k: email_dict.get(k, "") for k in self.fieldnames if k != "skip_reason"
+        }
         row["skip_reason"] = reason
 
-        self.writer.writerow(row)
-        self.file.flush()
+        if self.writer is not None:
+            self.writer.writerow(row)
+        if self.file is not None:
+            self.file.flush()
 
         # Update statistics
         self.stats.total_skipped += 1
@@ -301,9 +307,9 @@ class SkippedEmailWriter:
         """Get skipped email statistics."""
         return self.stats
 
-    def __enter__(self):
+    def __enter__(self) -> "SkippedEmailWriter":
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> Literal[False]:
         self.close()
         return False
