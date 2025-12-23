@@ -99,7 +99,7 @@ class TerminalUI:
 """
         self.console.print(banner, style="bold cyan")
 
-    def print_config(self, input_file: str, output_dir: str, options: Dict = None):
+    def print_config(self, input_file: str, output_dir: str, options: dict = None):
         """Display configuration panel."""
         if self.quiet or not self.console:
             return
@@ -126,7 +126,7 @@ class TerminalUI:
         self.console.print(panel)
         self.console.print()
 
-    def create_progress(self) -> Optional[Progress]:
+    def create_progress(self) -> Progress | None:
         """Create progress bar context manager."""
         if self.quiet or not self.console:
             return None
@@ -146,10 +146,10 @@ class TerminalUI:
 
     def print_domain_stats(
         self,
-        domain_counts: Dict[str, int],
+        domain_counts: dict[str, int],
         total: int,
-        enhanced_stats: Optional[Dict] = None,
-        input_file: Optional[str] = None,
+        enhanced_stats: dict | None = None,
+        input_file: str | None = None,
     ):
         """Display domain statistics table."""
         if self.quiet or not self.console:
@@ -215,7 +215,11 @@ class TerminalUI:
         # Enhanced statistics if available
         if enhanced_stats:
             # Combined Enhanced Statistics Table
-            title = f"Email classified by domain - {input_file}" if input_file else "Email classified by domain"
+            title = (
+                f"Email classified by domain - {input_file}"
+                if input_file
+                else "Email classified by domain"
+            )
             enhanced_table = Table(
                 title=title,
                 box=box.ROUNDED,
@@ -303,7 +307,7 @@ class TerminalUI:
             self.console.print(enhanced_table)
             self.console.print()
 
-    def print_summary_panel(self, stats: Dict):
+    def print_summary_panel(self, stats: dict):
         """Display final summary panel."""
         if self.quiet or not self.console:
             return
@@ -337,8 +341,12 @@ class TerminalUI:
         if validation.get("total_invalid", 0) > 0:
             content.append("\n🔍 Validation\n\n", style="bold cyan")
             content.append("  Invalid (skipped): ", style="dim")
-            content.append(f"{validation.get('total_invalid', 0):,}", style="bold yellow")
-            content.append(f" ({validation.get('invalid_percentage', 0)}%)\n", style="yellow")
+            content.append(
+                f"{validation.get('total_invalid', 0):,}", style="bold yellow"
+            )
+            content.append(
+                f" ({validation.get('invalid_percentage', 0)}%)\n", style="yellow"
+            )
             content.append("  (See invalid_emails.csv)\n", style="dim")
 
         content.append("\n⏱️  Performance\n\n", style="bold cyan")
@@ -369,7 +377,7 @@ class TerminalUI:
 
         self.console.print(panel)
 
-    def print_output_files(self, output_dir: Path, file_counts: Dict[str, int]):
+    def print_output_files(self, output_dir: Path, file_counts: dict[str, int]):
         """Display list of output files created."""
         if self.quiet or not self.console:
             return
@@ -399,7 +407,7 @@ class TerminalUI:
             f"  📂 All files saved to: [bold cyan]{output_dir}[/bold cyan]\n"
         )
 
-    def print_recommendations(self, recommendations: List[str]):
+    def print_recommendations(self, recommendations: list[str]):
         """Display recommendations panel."""
         if self.quiet or not self.console or not recommendations:
             return
@@ -459,6 +467,285 @@ class TerminalUI:
         response = input().strip().lower()
         return response in ("y", "yes")
 
+    def print_analysis_report(self, result: "AnalysisResult") -> None:
+        """Display dataset analysis report with charts.
+
+        Args:
+            result: AnalysisResult from DatasetAnalyzer.
+        """
+        if self.quiet or not self.console:
+            return
+
+        from .analyzer import AnalysisResult  # noqa: F811
+
+        # Header panel
+        self._print_analysis_header(result)
+
+        # Label distribution
+        self._print_label_distribution(result)
+
+        # Body length and sender domains side by side
+        self._print_body_and_domains(result)
+
+        # Data quality
+        self._print_data_quality(result)
+
+    def _print_analysis_header(self, result: "AnalysisResult") -> None:
+        """Print file metadata header."""
+        from .analyzer import AnalysisResult  # noqa: F811
+
+        # Format file size
+        size_bytes = result.file_size_bytes
+        if size_bytes < 1024:
+            size_str = f"{size_bytes} B"
+        elif size_bytes < 1024 * 1024:
+            size_str = f"{size_bytes / 1024:.1f} KB"
+        else:
+            size_str = f"{size_bytes / (1024 * 1024):.1f} MB"
+
+        header_text = Text()
+        header_text.append("📊 DATASET ANALYSIS\n\n", style="bold cyan")
+        header_text.append("  File:     ", style="dim")
+        header_text.append(f"{result.file_path}\n", style="bold white")
+        header_text.append("  Size:     ", style="dim")
+        header_text.append(f"{size_str}\n", style="white")
+        header_text.append("  Samples:  ", style="dim")
+        header_text.append(f"{result.total_rows:,}\n", style="bold green")
+        header_text.append("  Columns:  ", style="dim")
+        header_text.append(f"{', '.join(result.columns[:6])}", style="white")
+        if len(result.columns) > 6:
+            header_text.append(f" (+{len(result.columns) - 6} more)", style="dim")
+
+        panel = Panel(
+            header_text,
+            border_style="cyan",
+            padding=(0, 2),
+        )
+        self.console.print(panel)
+        self.console.print()
+
+    def _print_label_distribution(self, result: "AnalysisResult") -> None:
+        """Print label distribution bar chart."""
+        if not result.label_counts:
+            return
+
+        table = Table(
+            title="Label Distribution",
+            box=box.ROUNDED,
+            border_style="cyan",
+            show_lines=False,
+            padding=(0, 1),
+        )
+
+        table.add_column("Label", style="bold", width=20)
+        table.add_column("Count", justify="right", width=10)
+        table.add_column("Percentage", justify="right", width=10)
+        table.add_column("Distribution", width=30)
+
+        # Sort by count descending
+        sorted_labels = sorted(result.label_counts.items(), key=lambda x: -x[1])
+        max_count = max(result.label_counts.values()) if result.label_counts else 1
+        total = result.total_rows
+
+        # Color palette for labels
+        colors = ["green", "blue", "magenta", "yellow", "cyan", "red", "white"]
+
+        for idx, (label, count) in enumerate(sorted_labels[:10]):  # Top 10
+            percentage = count / total * 100 if total > 0 else 0
+            bar_width = int(count / max_count * 25) if max_count > 0 else 0
+            bar = "█" * bar_width + "░" * (25 - bar_width)
+
+            color = colors[idx % len(colors)]
+            table.add_row(
+                Text(label[:20], style=color),
+                f"{count:,}",
+                f"{percentage:.1f}%",
+                Text(bar, style=color),
+            )
+
+        if len(sorted_labels) > 10:
+            remaining = len(sorted_labels) - 10
+            table.add_row(
+                Text(f"(+{remaining} more labels)", style="dim"),
+                "",
+                "",
+                "",
+            )
+
+        self.console.print(table)
+        self.console.print()
+
+    def _print_body_and_domains(self, result: "AnalysisResult") -> None:
+        """Print body length histogram and sender domains."""
+        # Create a layout with two columns
+        from rich.columns import Columns
+
+        # Body length histogram
+        body_content = Text()
+        body_content.append("📝 Body Length Distribution\n\n", style="bold cyan")
+
+        if result.body_length_buckets:
+            max_bucket = max(result.body_length_buckets.values()) or 1
+            total = result.total_rows
+
+            for bucket_name, count in result.body_length_buckets.items():
+                percentage = count / total * 100 if total > 0 else 0
+                bar_width = int(count / max_bucket * 15) if max_bucket > 0 else 0
+                bar = "█" * bar_width
+
+                body_content.append(f"  {bucket_name:<10} ", style="dim")
+                body_content.append(f"{bar:<15} ", style="cyan")
+                body_content.append(f"{percentage:>5.1f}%\n", style="white")
+
+        body_content.append("\n", style="")
+        body_content.append("  Min:    ", style="dim")
+        body_content.append(f"{result.body_length_min:,} chars\n", style="white")
+        body_content.append("  Max:    ", style="dim")
+        body_content.append(f"{result.body_length_max:,} chars\n", style="white")
+        body_content.append("  Mean:   ", style="dim")
+        body_content.append(f"{result.body_length_mean:,.0f} chars\n", style="white")
+        body_content.append("  Median: ", style="dim")
+        body_content.append(f"{result.body_length_median:,.0f} chars\n", style="white")
+
+        body_panel = Panel(
+            body_content,
+            border_style="cyan",
+            padding=(0, 1),
+        )
+
+        # Sender domains
+        domain_content = Text()
+        domain_content.append("📧 Top Sender Domains\n\n", style="bold cyan")
+
+        if result.sender_domain_counts:
+            sorted_domains = sorted(
+                result.sender_domain_counts.items(), key=lambda x: -x[1]
+            )[:8]
+            max_domain = sorted_domains[0][1] if sorted_domains else 1
+            total = result.total_rows
+
+            for domain, count in sorted_domains:
+                percentage = count / total * 100 if total > 0 else 0
+                bar_width = int(count / max_domain * 10) if max_domain > 0 else 0
+                bar = "█" * bar_width
+
+                domain_content.append(f"  {domain[:18]:<18} ", style="white")
+                domain_content.append(f"{bar:<10} ", style="green")
+                domain_content.append(f"{percentage:>5.1f}%\n", style="dim")
+
+            if result.total_unique_domains > 8:
+                remaining = result.total_unique_domains - 8
+                domain_content.append(f"\n  (+{remaining} more domains)\n", style="dim")
+        else:
+            domain_content.append("  No valid sender domains found\n", style="dim")
+
+        domain_content.append("\n", style="")
+        domain_content.append("  Total unique: ", style="dim")
+        domain_content.append(f"{result.total_unique_domains:,}\n", style="white")
+
+        domain_panel = Panel(
+            domain_content,
+            border_style="green",
+            padding=(0, 1),
+        )
+
+        self.console.print(Columns([body_panel, domain_panel], equal=True))
+        self.console.print()
+
+    def _print_data_quality(self, result: "AnalysisResult") -> None:
+        """Print data quality summary."""
+        content = Text()
+        content.append("🔍 Data Quality Summary\n\n", style="bold cyan")
+
+        total = result.total_rows
+        issues_found = False
+
+        # URL presence
+        content.append("  URL Presence:     ", style="dim")
+        content.append(
+            f"{result.url_percentage:.1f}% of emails contain URLs\n", style="white"
+        )
+
+        # Subject stats
+        content.append("  Subject Length:   ", style="dim")
+        content.append(f"avg {result.subject_length_mean:.0f} chars\n", style="white")
+
+        content.append("\n", style="")
+
+        # Check for issues
+        if result.empty_sender_count > 0:
+            pct = result.empty_sender_count / total * 100 if total > 0 else 0
+            content.append("  ⚠ ", style="yellow")
+            content.append(
+                f"Empty sender: {result.empty_sender_count:,} ({pct:.1f}%)\n",
+                style="yellow",
+            )
+            issues_found = True
+
+        if result.empty_receiver_count > 0:
+            pct = result.empty_receiver_count / total * 100 if total > 0 else 0
+            content.append("  ⚠ ", style="yellow")
+            content.append(
+                f"Empty receiver: {result.empty_receiver_count:,} ({pct:.1f}%)\n",
+                style="yellow",
+            )
+            issues_found = True
+
+        if result.empty_subject_count > 0:
+            pct = result.empty_subject_count / total * 100 if total > 0 else 0
+            content.append("  ⚠ ", style="yellow")
+            content.append(
+                f"Empty subject: {result.empty_subject_count:,} ({pct:.1f}%)\n",
+                style="yellow",
+            )
+            issues_found = True
+
+        if result.empty_body_count > 0:
+            pct = result.empty_body_count / total * 100 if total > 0 else 0
+            content.append("  ⚠ ", style="yellow")
+            content.append(
+                f"Empty body: {result.empty_body_count:,} ({pct:.1f}%)\n",
+                style="yellow",
+            )
+            issues_found = True
+
+        if result.invalid_sender_format_count > 0:
+            pct = result.invalid_sender_format_count / total * 100 if total > 0 else 0
+            content.append("  ⚠ ", style="yellow")
+            content.append(
+                f"Invalid sender format: {result.invalid_sender_format_count:,} ({pct:.1f}%)\n",
+                style="yellow",
+            )
+            issues_found = True
+
+        if result.invalid_receiver_format_count > 0:
+            pct = result.invalid_receiver_format_count / total * 100 if total > 0 else 0
+            content.append("  ⚠ ", style="yellow")
+            content.append(
+                f"Invalid receiver format: {result.invalid_receiver_format_count:,} ({pct:.1f}%)\n",
+                style="yellow",
+            )
+            issues_found = True
+
+        if not issues_found:
+            content.append("  ✓ ", style="green")
+            content.append("All required fields present and valid\n", style="green")
+
+        # Recommendations
+        if issues_found:
+            content.append("\n  💡 ", style="cyan")
+            content.append(
+                "Use --strict-validation during classification to skip invalid emails\n",
+                style="dim",
+            )
+
+        panel = Panel(
+            content,
+            border_style="cyan",
+            padding=(0, 2),
+        )
+        self.console.print(panel)
+
 
 class SimpleUI:
     """Fallback simple UI when Rich is not available."""
@@ -473,7 +760,7 @@ class SimpleUI:
         print("       EMAIL DOMAIN CLASSIFIER v1.0")
         print("=" * 60 + "\n")
 
-    def print_config(self, input_file: str, output_dir: str, options: Dict = None):
+    def print_config(self, input_file: str, output_dir: str, options: dict = None):
         if self.quiet:
             return
         print(f"Input:  {input_file}")
@@ -494,7 +781,7 @@ class SimpleUI:
         if current >= total:
             print()
 
-    def print_domain_stats(self, domain_counts: Dict[str, int], total: int):
+    def print_domain_stats(self, domain_counts: dict[str, int], total: int):
         if self.quiet:
             return
         print("\n" + "-" * 50)
@@ -517,6 +804,52 @@ class SimpleUI:
     def print_info(self, message: str):
         if not self.quiet:
             print(f"ℹ {message}")
+
+    def print_analysis_report(self, result: "AnalysisResult") -> None:
+        """Display dataset analysis report (simple version)."""
+        if self.quiet:
+            return
+
+        print("\n" + "=" * 60)
+        print("DATASET ANALYSIS")
+        print("=" * 60)
+        print(f"File:    {result.file_path}")
+        print(f"Size:    {result.file_size_bytes:,} bytes")
+        print(f"Samples: {result.total_rows:,}")
+        print()
+
+        print("Label Distribution:")
+        print("-" * 40)
+        for label, count in sorted(result.label_counts.items(), key=lambda x: -x[1]):
+            pct = count / result.total_rows * 100 if result.total_rows > 0 else 0
+            print(f"  {label:<20} {count:>8,} ({pct:>5.1f}%)")
+        print()
+
+        print("Body Length Statistics:")
+        print("-" * 40)
+        print(f"  Min:    {result.body_length_min:,} chars")
+        print(f"  Max:    {result.body_length_max:,} chars")
+        print(f"  Mean:   {result.body_length_mean:,.0f} chars")
+        print(f"  Median: {result.body_length_median:,.0f} chars")
+        print()
+
+        print("Top Sender Domains:")
+        print("-" * 40)
+        for domain, count in sorted(
+            result.sender_domain_counts.items(), key=lambda x: -x[1]
+        )[:10]:
+            pct = count / result.total_rows * 100 if result.total_rows > 0 else 0
+            print(f"  {domain:<25} {count:>6,} ({pct:>5.1f}%)")
+        print()
+
+        print("Data Quality:")
+        print("-" * 40)
+        print(f"  URL Presence: {result.url_percentage:.1f}%")
+        if result.empty_body_count > 0:
+            print(f"  ⚠ Empty body: {result.empty_body_count:,}")
+        if result.invalid_sender_format_count > 0:
+            print(f"  ⚠ Invalid sender: {result.invalid_sender_format_count:,}")
+        print("=" * 60 + "\n")
 
 
 def get_ui(quiet: bool = False) -> TerminalUI:

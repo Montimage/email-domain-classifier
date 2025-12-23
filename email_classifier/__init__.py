@@ -1,5 +1,4 @@
-"""
-Email Domain Classifier Package
+"""Email Domain Classifier Package.
 
 A Python library for classifying emails by domain using dual-method validation.
 Combines keyword taxonomy matching and structural template analysis for accurate
@@ -22,6 +21,9 @@ __version__ = "1.0.0"
 __author__ = "Montimage Security Research"
 __email__ = "research@montimage.com"
 
+# Processing and reporting
+from .analyzer import AnalysisResult, DatasetAnalyzer
+
 # Core classification classes
 from .classifier import (
     ClassificationResult,
@@ -42,8 +44,6 @@ from .domains import (
     get_domain_names,
     get_domain_profile,
 )
-
-# Processing and reporting
 from .processor import ProcessingStats, StreamingProcessor
 from .reporter import ClassificationReporter, ReportConfig
 
@@ -62,9 +62,11 @@ __all__ = [
     "ClassificationResult",
     "KeywordTaxonomyClassifier",
     "StructuralTemplateClassifier",
-    # Processing
+    # Processing and Analysis
     "StreamingProcessor",
     "ProcessingStats",
+    "DatasetAnalyzer",
+    "AnalysisResult",
     # Reporting
     "ClassificationReporter",
     "ReportConfig",

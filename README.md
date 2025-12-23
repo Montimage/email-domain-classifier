@@ -16,6 +16,11 @@ A Python library for classifying emails by domain using dual-method validation. 
 git clone git@github.com:montimage/email-domain-classifier.git && cd email-domain-classifier
 python -m venv .venv && source .venv/bin/activate  # .venv\Scripts\activate on Windows
 pip install -e .
+
+# Analyze your dataset first
+email-cli info sample_emails.csv
+
+# Then classify emails
 email-cli sample_emails.csv -o output/
 ```
 
@@ -24,7 +29,7 @@ email-cli sample_emails.csv -o output/
 The Email Domain Classifier processes email datasets using sophisticated dual-method validation to accurately categorize emails into 10 business domains:
 
 - **💰 Finance** - Banking, payments, financial services
-- **💻 Technology** - Software, hardware, IT services  
+- **💻 Technology** - Software, hardware, IT services
 - **🛒 Retail** - E-commerce, shopping, consumer goods
 - **📦 Logistics** - Shipping, supply chain, transportation
 - **🏥 Healthcare** - Medical services, health insurance
@@ -47,22 +52,23 @@ Emails are only classified when **both methods agree**, ensuring high-confidence
 
 ```
 email_classifier/
-├── classifier.py         # Core classification logic
-├── cli.py               # Command-line interface  
+├── analyzer.py          # Dataset analysis (info command)
+├── classifier.py        # Core classification logic
+├── cli.py               # Command-line interface
 ├── domains.py           # Domain definitions and profiles
 ├── processor.py         # CSV streaming processor
 ├── reporter.py          # Report generation
-└── ui.py               # Terminal UI components
+├── ui.py                # Terminal UI components
+└── validator.py         # Email validation
 
 tests/                   # Test suite
-spam-assasin/            # Sample data and testing tools
 docs/                    # Comprehensive documentation
 ```
 
 ## 📚 Documentation
 
 - **📖 [Installation Guide](docs/installation.md)** - Complete setup instructions
-- **🚀 [User Guide](docs/user-guide/)** - Usage examples and tutorials  
+- **🚀 [User Guide](docs/user-guide/)** - Usage examples and tutorials
 - **📡 [API Reference](docs/api/)** - Complete API documentation
 - **🏛️ [Architecture](docs/architecture/)** - System design and patterns
 - **🛠️ [Development](docs/development-playbook.md)** - Development setup and contribution
@@ -71,14 +77,33 @@ docs/                    # Comprehensive documentation
 
 ## 🔬 Key Features
 
+- **Dataset Analysis**: `info` command to analyze datasets before classification (label distribution, body lengths, sender domains, data quality)
 - **Dual-Method Classification**: Combines keyword taxonomy and structural analysis for accuracy
 - **Streaming Processing**: Memory-efficient handling of large CSV datasets
 - **Data Validation**: Validates email records (valid sender/receiver format, non-empty subject/body) before processing
 - **Standardized Output**: Consistent column structure: `sender, receiver, date, subject, body, urls, label`
-- **Beautiful Terminal UI**: Rich progress bars, tables, and color-coded output
+- **Beautiful Terminal UI**: Rich progress bars, tables, charts, and color-coded output
 - **Comprehensive Reports**: JSON and text reports with detailed statistics
 - **Cross-Platform**: Works on Windows, macOS, and Linux
 - **Python 3.10+**: Modern Python with type hints and dataclasses
+
+## 📊 Dataset Analysis
+
+Before classifying, analyze your dataset to understand its structure:
+
+```bash
+# Terminal report with charts
+email-cli info emails.csv
+
+# Machine-readable JSON output
+email-cli info emails.csv --json
+```
+
+The info command displays:
+- **Label distribution** - Bar chart of existing labels
+- **Body length histogram** - Distribution of email lengths
+- **Top sender domains** - Most common sender domains
+- **Data quality** - Missing fields, invalid formats, URL presence
 
 ## 📊 Data Validation
 
