@@ -1,0 +1,618 @@
+{
+  "meta": {
+    "generated_at": "2025-12-23T12:12:30.317312",
+    "input_file": "/Users/montimage/workspace/montimage/email-classifier/raw-data/CEAS_08.csv",
+    "output_directory": "/Users/montimage/workspace/montimage/email-classifier/classified-data/ceas_08"
+  },
+  "summary": {
+    "total_emails": 34858,
+    "classified": 33036,
+    "unsure": 1822,
+    "errors": 0,
+    "classification_rate_percent": 94.77,
+    "error_rate_percent": 0.0,
+    "unique_domains_found": 10
+  },
+  "validation": {
+    "total_invalid": 3721,
+    "invalid_percentage": 9.65,
+    "breakdown": {
+      "invalid_sender_format": 1171,
+      "invalid_receiver_format": 2073,
+      "empty_sender": 0,
+      "empty_receiver": 462,
+      "empty_subject": 28,
+      "empty_body": 0
+    }
+  },
+  "skipped": {
+    "total_skipped": 575,
+    "skipped_percentage": 1.47,
+    "breakdown": {
+      "body_too_long": 575
+    }
+  },
+  "domain_breakdown": {
+    "social_media": {
+      "count": 10024,
+      "percentage": 28.76,
+      "display_name": "\ud83d\udcf2 Social Media"
+    },
+    "technology": {
+      "count": 5372,
+      "percentage": 15.41,
+      "display_name": "\ud83d\udcbb Technology"
+    },
+    "retail": {
+      "count": 4784,
+      "percentage": 13.72,
+      "display_name": "\ud83d\uded2 Retail"
+    },
+    "telecommunications": {
+      "count": 2687,
+      "percentage": 7.71,
+      "display_name": "\ud83d\udcf1 Telecom"
+    },
+    "government": {
+      "count": 2541,
+      "percentage": 7.29,
+      "display_name": "\ud83c\udfdb\ufe0f Government"
+    },
+    "healthcare": {
+      "count": 2391,
+      "percentage": 6.86,
+      "display_name": "\ud83c\udfe5 Healthcare"
+    },
+    "education": {
+      "count": 2105,
+      "percentage": 6.04,
+      "display_name": "\ud83c\udf93 Education"
+    },
+    "unsure": {
+      "count": 1822,
+      "percentage": 5.23,
+      "display_name": "Unsure"
+    },
+    "finance": {
+      "count": 1176,
+      "percentage": 3.37,
+      "display_name": "\ud83d\udcb0 Finance"
+    },
+    "logistics": {
+      "count": 1143,
+      "percentage": 3.28,
+      "display_name": "\ud83d\udce6 Logistics"
+    },
+    "hr": {
+      "count": 813,
+      "percentage": 2.33,
+      "display_name": "\ud83d\udc65 Human Resources"
+    }
+  },
+  "label_distribution_analysis": {
+    "unsure": {
+      "total_emails": 1822,
+      "unique_labels": 2,
+      "distribution": {
+        "1": {
+          "count": 1534,
+          "percentage": 84.19
+        },
+        "0": {
+          "count": 288,
+          "percentage": 15.81
+        }
+      }
+    },
+    "social_media": {
+      "total_emails": 10024,
+      "unique_labels": 2,
+      "distribution": {
+        "1": {
+          "count": 5577,
+          "percentage": 55.64
+        },
+        "0": {
+          "count": 4447,
+          "percentage": 44.36
+        }
+      }
+    },
+    "retail": {
+      "total_emails": 4784,
+      "unique_labels": 2,
+      "distribution": {
+        "1": {
+          "count": 4022,
+          "percentage": 84.07
+        },
+        "0": {
+          "count": 762,
+          "percentage": 15.93
+        }
+      }
+    },
+    "government": {
+      "total_emails": 2541,
+      "unique_labels": 2,
+      "distribution": {
+        "0": {
+          "count": 1732,
+          "percentage": 68.16
+        },
+        "1": {
+          "count": 809,
+          "percentage": 31.84
+        }
+      }
+    },
+    "finance": {
+      "total_emails": 1176,
+      "unique_labels": 2,
+      "distribution": {
+        "1": {
+          "count": 687,
+          "percentage": 58.42
+        },
+        "0": {
+          "count": 489,
+          "percentage": 41.58
+        }
+      }
+    },
+    "technology": {
+      "total_emails": 5372,
+      "unique_labels": 2,
+      "distribution": {
+        "0": {
+          "count": 3288,
+          "percentage": 61.21
+        },
+        "1": {
+          "count": 2084,
+          "percentage": 38.79
+        }
+      }
+    },
+    "education": {
+      "total_emails": 2105,
+      "unique_labels": 2,
+      "distribution": {
+        "0": {
+          "count": 1081,
+          "percentage": 51.35
+        },
+        "1": {
+          "count": 1024,
+          "percentage": 48.65
+        }
+      }
+    },
+    "telecommunications": {
+      "total_emails": 2687,
+      "unique_labels": 2,
+      "distribution": {
+        "0": {
+          "count": 1850,
+          "percentage": 68.85
+        },
+        "1": {
+          "count": 837,
+          "percentage": 31.15
+        }
+      }
+    },
+    "hr": {
+      "total_emails": 813,
+      "unique_labels": 2,
+      "distribution": {
+        "1": {
+          "count": 492,
+          "percentage": 60.52
+        },
+        "0": {
+          "count": 321,
+          "percentage": 39.48
+        }
+      }
+    },
+    "healthcare": {
+      "total_emails": 2391,
+      "unique_labels": 2,
+      "distribution": {
+        "1": {
+          "count": 2031,
+          "percentage": 84.94
+        },
+        "0": {
+          "count": 360,
+          "percentage": 15.06
+        }
+      }
+    },
+    "logistics": {
+      "total_emails": 1143,
+      "unique_labels": 2,
+      "distribution": {
+        "1": {
+          "count": 656,
+          "percentage": 57.39
+        },
+        "0": {
+          "count": 487,
+          "percentage": 42.61
+        }
+      }
+    }
+  },
+  "url_distribution_analysis": {
+    "unsure": {
+      "total_emails": 1822,
+      "with_urls": {
+        "count": 1182,
+        "percentage": 64.87
+      },
+      "without_urls": {
+        "count": 640,
+        "percentage": 35.13
+      }
+    },
+    "social_media": {
+      "total_emails": 10024,
+      "with_urls": {
+        "count": 6691,
+        "percentage": 66.75
+      },
+      "without_urls": {
+        "count": 3333,
+        "percentage": 33.25
+      }
+    },
+    "retail": {
+      "total_emails": 4784,
+      "with_urls": {
+        "count": 3351,
+        "percentage": 70.05
+      },
+      "without_urls": {
+        "count": 1433,
+        "percentage": 29.95
+      }
+    },
+    "government": {
+      "total_emails": 2541,
+      "with_urls": {
+        "count": 1588,
+        "percentage": 62.5
+      },
+      "without_urls": {
+        "count": 953,
+        "percentage": 37.5
+      }
+    },
+    "finance": {
+      "total_emails": 1176,
+      "with_urls": {
+        "count": 717,
+        "percentage": 60.97
+      },
+      "without_urls": {
+        "count": 459,
+        "percentage": 39.03
+      }
+    },
+    "technology": {
+      "total_emails": 5372,
+      "with_urls": {
+        "count": 3550,
+        "percentage": 66.08
+      },
+      "without_urls": {
+        "count": 1822,
+        "percentage": 33.92
+      }
+    },
+    "education": {
+      "total_emails": 2105,
+      "with_urls": {
+        "count": 1654,
+        "percentage": 78.57
+      },
+      "without_urls": {
+        "count": 451,
+        "percentage": 21.43
+      }
+    },
+    "telecommunications": {
+      "total_emails": 2687,
+      "with_urls": {
+        "count": 1708,
+        "percentage": 63.57
+      },
+      "without_urls": {
+        "count": 979,
+        "percentage": 36.43
+      }
+    },
+    "hr": {
+      "total_emails": 813,
+      "with_urls": {
+        "count": 483,
+        "percentage": 59.41
+      },
+      "without_urls": {
+        "count": 330,
+        "percentage": 40.59
+      }
+    },
+    "healthcare": {
+      "total_emails": 2391,
+      "with_urls": {
+        "count": 1131,
+        "percentage": 47.3
+      },
+      "without_urls": {
+        "count": 1260,
+        "percentage": 52.7
+      }
+    },
+    "logistics": {
+      "total_emails": 1143,
+      "with_urls": {
+        "count": 605,
+        "percentage": 52.93
+      },
+      "without_urls": {
+        "count": 538,
+        "percentage": 47.07
+      }
+    }
+  },
+  "cross_tabulation_analysis": {
+    "unsure": {
+      "total_emails": 1822,
+      "labels": {
+        "1": {
+          "with_urls": 1002,
+          "without_urls": 532,
+          "total": 1534,
+          "with_urls_percentage": 65.32,
+          "without_urls_percentage": 34.68,
+          "percentage_of_domain": 84.19
+        },
+        "0": {
+          "with_urls": 180,
+          "without_urls": 108,
+          "total": 288,
+          "with_urls_percentage": 62.5,
+          "without_urls_percentage": 37.5,
+          "percentage_of_domain": 15.81
+        }
+      }
+    },
+    "social_media": {
+      "total_emails": 10024,
+      "labels": {
+        "1": {
+          "with_urls": 3782,
+          "without_urls": 1795,
+          "total": 5577,
+          "with_urls_percentage": 67.81,
+          "without_urls_percentage": 32.19,
+          "percentage_of_domain": 55.64
+        },
+        "0": {
+          "with_urls": 2909,
+          "without_urls": 1538,
+          "total": 4447,
+          "with_urls_percentage": 65.41,
+          "without_urls_percentage": 34.59,
+          "percentage_of_domain": 44.36
+        }
+      }
+    },
+    "retail": {
+      "total_emails": 4784,
+      "labels": {
+        "1": {
+          "with_urls": 2799,
+          "without_urls": 1223,
+          "total": 4022,
+          "with_urls_percentage": 69.59,
+          "without_urls_percentage": 30.41,
+          "percentage_of_domain": 84.07
+        },
+        "0": {
+          "with_urls": 552,
+          "without_urls": 210,
+          "total": 762,
+          "with_urls_percentage": 72.44,
+          "without_urls_percentage": 27.56,
+          "percentage_of_domain": 15.93
+        }
+      }
+    },
+    "government": {
+      "total_emails": 2541,
+      "labels": {
+        "1": {
+          "with_urls": 504,
+          "without_urls": 305,
+          "total": 809,
+          "with_urls_percentage": 62.3,
+          "without_urls_percentage": 37.7,
+          "percentage_of_domain": 31.84
+        },
+        "0": {
+          "with_urls": 1084,
+          "without_urls": 648,
+          "total": 1732,
+          "with_urls_percentage": 62.59,
+          "without_urls_percentage": 37.41,
+          "percentage_of_domain": 68.16
+        }
+      }
+    },
+    "finance": {
+      "total_emails": 1176,
+      "labels": {
+        "0": {
+          "with_urls": 320,
+          "without_urls": 169,
+          "total": 489,
+          "with_urls_percentage": 65.44,
+          "without_urls_percentage": 34.56,
+          "percentage_of_domain": 41.58
+        },
+        "1": {
+          "with_urls": 397,
+          "without_urls": 290,
+          "total": 687,
+          "with_urls_percentage": 57.79,
+          "without_urls_percentage": 42.21,
+          "percentage_of_domain": 58.42
+        }
+      }
+    },
+    "technology": {
+      "total_emails": 5372,
+      "labels": {
+        "0": {
+          "with_urls": 2128,
+          "without_urls": 1160,
+          "total": 3288,
+          "with_urls_percentage": 64.72,
+          "without_urls_percentage": 35.28,
+          "percentage_of_domain": 61.21
+        },
+        "1": {
+          "with_urls": 1422,
+          "without_urls": 662,
+          "total": 2084,
+          "with_urls_percentage": 68.23,
+          "without_urls_percentage": 31.77,
+          "percentage_of_domain": 38.79
+        }
+      }
+    },
+    "education": {
+      "total_emails": 2105,
+      "labels": {
+        "1": {
+          "with_urls": 937,
+          "without_urls": 87,
+          "total": 1024,
+          "with_urls_percentage": 91.5,
+          "without_urls_percentage": 8.5,
+          "percentage_of_domain": 48.65
+        },
+        "0": {
+          "with_urls": 717,
+          "without_urls": 364,
+          "total": 1081,
+          "with_urls_percentage": 66.33,
+          "without_urls_percentage": 33.67,
+          "percentage_of_domain": 51.35
+        }
+      }
+    },
+    "telecommunications": {
+      "total_emails": 2687,
+      "labels": {
+        "1": {
+          "with_urls": 584,
+          "without_urls": 253,
+          "total": 837,
+          "with_urls_percentage": 69.77,
+          "without_urls_percentage": 30.23,
+          "percentage_of_domain": 31.15
+        },
+        "0": {
+          "with_urls": 1124,
+          "without_urls": 726,
+          "total": 1850,
+          "with_urls_percentage": 60.76,
+          "without_urls_percentage": 39.24,
+          "percentage_of_domain": 68.85
+        }
+      }
+    },
+    "hr": {
+      "total_emails": 813,
+      "labels": {
+        "0": {
+          "with_urls": 212,
+          "without_urls": 109,
+          "total": 321,
+          "with_urls_percentage": 66.04,
+          "without_urls_percentage": 33.96,
+          "percentage_of_domain": 39.48
+        },
+        "1": {
+          "with_urls": 271,
+          "without_urls": 221,
+          "total": 492,
+          "with_urls_percentage": 55.08,
+          "without_urls_percentage": 44.92,
+          "percentage_of_domain": 60.52
+        }
+      }
+    },
+    "healthcare": {
+      "total_emails": 2391,
+      "labels": {
+        "1": {
+          "with_urls": 881,
+          "without_urls": 1150,
+          "total": 2031,
+          "with_urls_percentage": 43.38,
+          "without_urls_percentage": 56.62,
+          "percentage_of_domain": 84.94
+        },
+        "0": {
+          "with_urls": 250,
+          "without_urls": 110,
+          "total": 360,
+          "with_urls_percentage": 69.44,
+          "without_urls_percentage": 30.56,
+          "percentage_of_domain": 15.06
+        }
+      }
+    },
+    "logistics": {
+      "total_emails": 1143,
+      "labels": {
+        "0": {
+          "with_urls": 283,
+          "without_urls": 204,
+          "total": 487,
+          "with_urls_percentage": 58.11,
+          "without_urls_percentage": 41.89,
+          "percentage_of_domain": 42.61
+        },
+        "1": {
+          "with_urls": 322,
+          "without_urls": 334,
+          "total": 656,
+          "with_urls_percentage": 49.09,
+          "without_urls_percentage": 50.91,
+          "percentage_of_domain": 57.39
+        }
+      }
+    }
+  },
+  "timing": {
+    "start_time": "2025-12-23T12:11:44.707777",
+    "end_time": "2025-12-23T12:12:30.316282",
+    "duration_seconds": 45.61,
+    "emails_per_second": 764.29
+  },
+  "quality_metrics": {
+    "method_agreement_rate": 94.77,
+    "domain_distribution_evenness": 0.8817,
+    "unsure_rate": 5.23
+  },
+  "recommendations": [
+    "Classification completed successfully with balanced results."
+  ]
+}
