@@ -104,7 +104,7 @@ pre-commit install
 ### Development Dependencies
 
 - **pytest >= 7.0.0** - Testing framework
-- **pytest-cov >= 4.0.0** - Test coverage reporting  
+- **pytest-cov >= 4.0.0** - Test coverage reporting
 - **black >= 23.0.0** - Code formatting
 - **isort >= 5.0.0** - Import sorting
 - **mypy >= 1.0.0** - Static type checking

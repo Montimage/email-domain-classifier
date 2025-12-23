@@ -17,19 +17,19 @@ flowchart TD
     Environment --> Local[Local Setup]
     Environment --> Container[Container Setup]
     Environment --> Cloud[Cloud Setup]
-    
+
     Local --> Setup[System Requirements Check]
     Container --> Docker[Build/Pull Images]
     Cloud --> Provider[Cloud Provider Setup]
-    
+
     Setup --> Install[Install Application]
     Docker --> Deploy[Deploy Container]
     Provider --> Configure[Configure Cloud Resources]
-    
+
     Install --> Validate[Validate Deployment]
     Deploy --> Validate
     Configure --> Validate
-    
+
     Validate --> Monitor[Setup Monitoring]
     Monitor --> Complete[Deployment Complete]
 
@@ -37,7 +37,7 @@ flowchart TD
     classDef planning fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
     classDef process fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
     classDef success fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
-    
+
     class Planning planning
     class Environment,Setup,Docker,Deploy,Provider,Configure process
     class Install,Validate,Monitor,Complete success
@@ -207,12 +207,12 @@ services:
       - ./logs:/app/logs
     command: >
       email-cli
-      /app/input/emails.csv 
+      /app/input/emails.csv
       -o /app/output
       --verbose
       --log-file /app/logs/classification.log
     restart: unless-stopped
-    
+
   monitoring:
     image: prom/prometheus:latest
     container_name: email-classifier-monitoring
@@ -369,21 +369,21 @@ from email_classifier import EmailClassifier
 
 def monitor_performance():
     classifier = EmailClassifier()
-    
+
     while True:
         # Memory usage
         memory = psutil.virtual_memory()
         print(f"Memory: {memory.percent}% used")
-        
+
         # CPU usage
         cpu = psutil.cpu_percent(interval=1)
         print(f"CPU: {cpu}% used")
-        
+
         # Processing speed
         start_time = time.time()
         # Simulate processing
         print(f"Processing rate: {1000/(time.time()-start_time):.2f} emails/sec")
-        
+
         time.sleep(60)
 
 if __name__ == "__main__":
@@ -411,12 +411,12 @@ gantt
     Environment Setup    :prep1, 2024-01-01 08:00, 2h
     Dependencies Install  :prep2, after prep1, 1h
     Configuration        :prep3, after prep2, 30m
-    
+
     section Deployment
     Application Install   :deploy1, after prep3, 1h
     Service Setup        :deploy2, after deploy1, 30m
     Validation          :deploy3, after deploy2, 1h
-    
+
     section Post-Deployment
     Monitoring Setup     :post1, after deploy3, 1h
     Documentation Update :post2, after post1, 2h
@@ -465,18 +465,18 @@ email_classifier:
   chunk_size: 1000
   max_memory_usage: "4GB"
   enable_detailed_logging: false
-  
+
 domains:
   custom_domains:
     - name: "internal_finance"
       keywords: ["payroll", "expense", "reimbursement"]
       pattern: ".*@company\\.com"
-  
+
 performance:
   enable_parallel_processing: true
   max_workers: 4
   memory_limit: "4GB"
-  
+
 monitoring:
   enable_metrics: true
   metrics_port: 8000
@@ -565,7 +565,7 @@ groups:
           severity: warning
         annotations:
           summary: "High error rate detected"
-          
+
       - alert: HighMemoryUsage
         expr: memory_usage > 0.8
         for: 10m
@@ -579,6 +579,6 @@ groups:
 
 **Related Documentation**:
 - [Development Playbook](development-playbook.md) - Development environment setup
-- [User Guide](user-guide/) - Usage instructions
-- [Architecture](architecture/) - System design
-- [Troubleshooting](troubleshooting/) - Common issues
+- [User Guide](../user-guide/) - Usage instructions
+- [Architecture](../architecture/) - System design
+- [Troubleshooting](../troubleshooting/) - Common issues

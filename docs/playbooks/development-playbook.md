@@ -18,15 +18,15 @@ flowchart TD
     Env --> Install[Install Dependencies]
     Install --> Config[Configure Tools]
     Config --> Code[Start Development]
-    
+
     Code --> Test[Run Tests]
     Code --> Lint[Code Quality]
     Code --> TypeCheck[Type Checking]
-    
+
     Test --> Commit[Commit Changes]
     Lint --> Commit
     TypeCheck --> Commit
-    
+
     Commit --> PR[Create Pull Request]
     PR --> Review[Code Review]
     Review --> Merge[Merge to Main]
@@ -35,7 +35,7 @@ flowchart TD
     classDef setup fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
     classDef process fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
     classDef success fill:#e8f5e8,stroke:#388e3c,stroke-width:2px
-    
+
     class Setup setup
     class Clone,Env,Install,Config process
     class Code,Test,Lint,TypeCheck,Commit,PR,Review,Merge success
@@ -269,6 +269,50 @@ ignore_missing_imports = True
 disallow_untyped_defs = False
 ```
 
+## 📊 Quality Standards
+
+### Code Complexity Limits
+
+| Metric | Target | Maximum |
+|--------|--------|---------|
+| Average Complexity | ≤ 7.0 (Grade A) | 10.0 |
+| Module Complexity | ≤ 10.0 (Grade B) | 15.0 |
+| Absolute Maximum | ≤ 15.0 (Grade C) | 20.0 |
+
+### Code Coverage Requirements
+
+| Scope | Minimum | Target |
+|-------|---------|--------|
+| Overall | 80% | 90%+ |
+| Per File | 70% | 80%+ |
+| Critical Modules | 90% | 95%+ |
+
+### Performance Targets
+
+| Metric | Target |
+|--------|--------|
+| Pre-commit execution | < 30 seconds |
+| CI pipeline | < 10 minutes |
+| Test suite | < 60 seconds |
+
+### Quick Commands Reference
+
+```bash
+# One-command setup
+./setup-dev-env.sh && make all
+
+# Development workflow
+make lint       # Run formatting and linting
+make security   # Run security scans
+make quality    # Run complexity analysis
+make test       # Run test suite
+make all        # Run everything
+
+# Package building
+python -m build
+twine check dist/*
+```
+
 ## 📋 Development Workflow
 
 ### Daily Development Routine
@@ -397,11 +441,11 @@ from email_classifier import EmailClassifier
 
 class TestNewFeature:
     """Test suite for new classification feature."""
-    
+
     def setup_method(self):
         """Setup for each test method."""
         self.classifier = EmailClassifier()
-    
+
     def test_feature_with_valid_input(self):
         """Test feature works with valid input."""
         # Arrange
@@ -411,21 +455,21 @@ class TestNewFeature:
             "body": "Test body content",
             "has_url": False
         }
-        
+
         # Act
         result = self.classifier.new_feature(email_data)
-        
+
         # Assert
         assert result is not None
         assert isinstance(result, tuple)
         assert len(result) == 2
-    
+
     def test_feature_with_invalid_input(self):
         """Test feature handles invalid input gracefully."""
         # Arrange & Act & Assert
         with pytest.raises(ValueError, match="Invalid email data"):
             self.classifier.new_feature(None)
-    
+
     @pytest.mark.parametrize("domain,expected", [
         ("finance", "financial"),
         ("technology", "tech"),
@@ -609,13 +653,13 @@ def benchmark_classification():
         "body": "Test body content" * 100,
         "has_url": True
     }
-    
+
     times = []
     for i in range(1000):
         start = time.perf_counter()
         classifier.classify_dict(email_data)
         times.append(time.perf_counter() - start)
-    
+
     return {
         "mean": statistics.mean(times),
         "median": statistics.median(times),
@@ -723,12 +767,12 @@ print(f"Memory usage: {current / 1024 / 1024:.1f} MB")
 def validate_email_input(email_data):
     if not isinstance(email_data, dict):
         raise TypeError("Email data must be a dictionary")
-    
+
     required_fields = ["sender", "subject", "body", "has_url"]
     missing = [field for field in required_fields if field not in email_data]
     if missing:
         raise ValueError(f"Missing required fields: {missing}")
-    
+
     return True
 
 # Safe string handling
@@ -742,7 +786,7 @@ def safe_text_extraction(text):
 
 **Related Documentation**:
 - [Deployment Playbook](deployment-playbook.md) - Production deployment
-- [User Guide](user-guide/) - Usage instructions
-- [API Reference](api/) - API documentation
-- [Architecture](architecture/) - System design
-- [Contributing Guidelines](../CONTRIBUTING.md) - Contribution process
+- [User Guide](../user-guide/) - Usage instructions
+- [API Reference](../api/) - API documentation
+- [Architecture](../architecture/) - System design
+- [Contributing Guidelines](../../CONTRIBUTING.md) - Contribution process

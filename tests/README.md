@@ -256,7 +256,7 @@ pytest tests/test_processor.py::test_large_dataset_memory -v
    assert result == expected
    assert isinstance(domain, str)
    assert "finance" in domain
-   
+
    # With descriptive messages
    assert domain == "finance", f"Expected 'finance', got '{domain}'"
    ```
@@ -267,7 +267,7 @@ pytest tests/test_processor.py::test_large_dataset_memory -v
    def test_empty_email(self):
        result = classifier.classify_dict({})
        assert result[0] == "unsure"
-   
+
    def test_malformed_data(self):
        with pytest.raises(ValueError):
            classifier.classify_dict(None)
@@ -291,10 +291,10 @@ def test_classify_finance_email_with_keywords(self):
         "subject": "Account Statement",
         "body": "Your monthly statement is ready..."
     }
-    
+
     # Act
     domain, details = classifier.classify_dict(email_data)
-    
+
     # Assert
     assert domain == "finance"
     assert details["method1"]["domain"] == "finance"
@@ -372,6 +372,6 @@ pytest tests/test_enhanced_statistics.py -m "not slow"
 
 **Related Documentation**:
 - [Email Classifier Module](../email_classifier/README.md) - Module being tested
-- [Development Guide](../docs/development-playbook.md) - Development setup
+- [Development Guide](../docs/playbooks/development-playbook.md) - Development setup
 - [API Documentation](../docs/api/) - API reference
 - [Architecture](../docs/architecture/) - System design

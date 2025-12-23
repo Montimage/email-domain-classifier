@@ -107,7 +107,7 @@ flowchart TD
 ### 🔧 Integration & Installation
 
 **[Integration](integration/)** - System integration and deployment
-- [Installation Guide](installation.md) - Complete installation instructions
+- [Installation Guide](integration/installation.md) - Complete installation instructions
 - [System Requirements](integration/system-requirements.md) - Hardware and software requirements
 - [Environment Setup](integration/environment-setup.md) - Configuration and environment
 - [Third Party Integration](integration/third-party-integration.md) - Integration with other systems
@@ -123,8 +123,8 @@ flowchart TD
 ### 🚀 Playbooks
 
 **Deployment & Development Guides**
-- [Deployment Playbook](deployment-playbook.md) - Production deployment procedures
-- [Development Playbook](development-playbook.md) - Development environment and contribution guide
+- [Deployment Playbook](playbooks/deployment-playbook.md) - Production deployment procedures
+- [Development Playbook](playbooks/development-playbook.md) - Development environment and contribution guide
 
 ## ✨ Key Features
 
@@ -134,16 +134,16 @@ flowchart TD
 flowchart LR
     Email[Email Input] --> Method1[Keyword Method]
     Email --> Method2[Structural Method]
-    
+
     Method1 --> Score1[Domain Score 1]
     Method2 --> Score2[Domain Score 2]
-    
+
     Score1 --> Validate[Validation Engine]
     Score2 --> Validate
-    
+
     Validate -->|Agreement| Domain[Domain Assigned]
     Validate -->|Disagreement| Unsure[Mark as Unsure]
-    
+
     Domain --> Output[Classified Output]
     Unsure --> Output
 ```
@@ -180,21 +180,21 @@ The classifier uses **two independent methods** for maximum accuracy:
 
 ### For Users
 
-1. **[Install the classifier](installation.md)** - Quick setup in 5 minutes
+1. **[Install the classifier](integration/installation.md)** - Quick setup in 5 minutes
 2. **[Try the quick start](user-guide/quick-start.md)** - Classify your first emails
 3. **[Explore usage examples](user-guide/usage-examples.md)** - Learn advanced features
 4. **[Check CLI reference](user-guide/cli-reference.md)** - All options and commands
 
 ### For Developers
 
-1. **[Set up development](development-playbook.md)** - Complete development environment
+1. **[Set up development](playbooks/development-playbook.md)** - Complete development environment
 2. **[Understand architecture](architecture/overview.md)** - System design and patterns
 3. **[Review API documentation](api/)** - Integration and extension points
-4. **[Contribute to project](development-playbook.md#contributing)** - Development workflow
+4. **[Contribute to project](playbooks/development-playbook.md#contributing)** - Development workflow
 
 ### For DevOps Engineers
 
-1. **[Deploy to production](deployment-playbook.md)** - Complete deployment guide
+1. **[Deploy to production](playbooks/deployment-playbook.md)** - Complete deployment guide
 2. **[Configure environment](integration/environment-setup.md)** - System configuration
 3. **[Monitor performance](troubleshooting/performance.md)** - Optimization and tuning
 4. **[Troubleshoot issues](troubleshooting/)** - Problem resolution
@@ -206,8 +206,8 @@ The classifier uses **two independent methods** for maximum accuracy:
 - **Beginner?** Start with [Quick Start Guide](user-guide/quick-start.md)
 - **Need help?** Check [Troubleshooting](troubleshooting/) section
 - **Integrating?** Review [API Documentation](api/) and [Integration Guide](integration/)
-- **Deploying?** Follow [Deployment Playbook](deployment-playbook.md)
-- **Developing?** Read [Development Playbook](development-playbook.md)
+- **Deploying?** Follow [Deployment Playbook](playbooks/deployment-playbook.md)
+- **Developing?** Read [Development Playbook](playbooks/development-playbook.md)
 
 ### Search Tips
 
@@ -293,4 +293,4 @@ email-cli --version
 
 ---
 
-**Start here**: [Quick Start Guide](user-guide/quick-start.md) • [Installation](installation.md) • [API Docs](api/) • [Development](development-playbook.md)
+**Start here**: [Quick Start Guide](user-guide/quick-start.md) • [Installation](integration/installation.md) • [API Docs](api/) • [Development](playbooks/development-playbook.md)

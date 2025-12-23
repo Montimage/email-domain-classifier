@@ -272,7 +272,7 @@ When contributing to this module:
 ---
 
 **Related Documentation**:
-- [API Reference](../api/) - Detailed API documentation
-- [User Guide](../user-guide/) - Usage examples
-- [Architecture](../architecture/) - System design
-- [Development Guide](../development-playbook.md) - Development setup
+- [API Reference](../docs/api/) - Detailed API documentation
+- [User Guide](../docs/user-guide/) - Usage examples
+- [Architecture](../docs/architecture/) - System design
+- [Development Guide](../docs/playbooks/development-playbook.md) - Development setup
