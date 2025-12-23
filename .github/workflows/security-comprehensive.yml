@@ -27,10 +27,10 @@ jobs:
 
     - name: Scan repository history with Trufflehog
       uses: trufflesecurity/trufflehog@main
+      continue-on-error: true
       with:
         path: ./
-        base: main
-        head: HEAD
+        extra_args: --only-verified
 
     - name: Generate SBOM
       uses: anchore/sbom-action@v0

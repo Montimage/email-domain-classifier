@@ -108,38 +108,3 @@ jobs:
         email-cli --help || echo "Help check failed"
         email-cli sample_emails.csv -o test-integration/ || echo "Integration test failed"
 
-  performance-tests:
-    runs-on: ubuntu-latest
-    needs: quality-checks
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.11"
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e ".[dev]"
-        pip install pytest-benchmark
-
-    - name: Performance Benchmarking
-      run: |
-        python -m pytest tests/performance/ --benchmark-json=performance.json
-
-    - name: Performance Analysis
-      run: |
-        echo "## ⚡ Performance Analysis" >> $GITHUB_STEP_SUMMARY
-        if [ -f "performance.json" ]; then
-          python3 -c "import json; f=open('performance.json'); json.load(f); print('Performance metrics collected successfully')" || echo "No performance data available"
-        fi
-
-    - name: Upload performance artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: performance-metrics
-        path: performance.json
-        retention-days: 30

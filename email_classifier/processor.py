@@ -137,7 +137,7 @@ class OutputManager:
                 fieldnames.append(col)
         return fieldnames
 
-    def _get_writer(self, domain: str) -> csv.DictWriter[str]:
+    def _get_writer(self, domain: str) -> "csv.DictWriter[str]":
         """Get or create CSV writer for domain."""
         if domain not in self.writers:
             filename = f"email_{domain}.csv"
