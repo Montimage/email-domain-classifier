@@ -1,0 +1,2 @@
+raw-data/*.csv filter=lfs diff=lfs merge=lfs -text
+classified-data/**/*.csv filter=lfs diff=lfs merge=lfs -text
