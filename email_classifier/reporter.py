@@ -49,6 +49,7 @@ class ClassificationReporter:
                 "output_directory": str(output_dir),
             },
             "summary": self._generate_summary(stats),
+            "validation": self._generate_validation_summary(stats),
             "domain_breakdown": self._generate_domain_breakdown(stats),
             "label_distribution_analysis": self._generate_label_distribution_analysis(
                 stats
@@ -92,6 +93,28 @@ class ClassificationReporter:
             "unique_domains_found": len(
                 [k for k, v in stats.domain_counts.items() if k != "unsure" and v > 0]
             ),
+        }
+
+    def _generate_validation_summary(self, stats: ProcessingStats) -> Dict:
+        """Generate validation statistics summary."""
+        validation = stats.validation_stats
+        total_attempted = stats.total_processed + validation.total_invalid
+
+        return {
+            "total_invalid": validation.total_invalid,
+            "invalid_percentage": (
+                round(validation.total_invalid / total_attempted * 100, 2)
+                if total_attempted > 0
+                else 0
+            ),
+            "breakdown": {
+                "invalid_sender_format": validation.invalid_sender_format,
+                "invalid_receiver_format": validation.invalid_receiver_format,
+                "empty_sender": validation.invalid_empty_sender,
+                "empty_receiver": validation.invalid_empty_receiver,
+                "empty_subject": validation.invalid_empty_subject,
+                "empty_body": validation.invalid_empty_body,
+            },
         }
 
     def _generate_domain_breakdown(self, stats: ProcessingStats) -> Dict:
@@ -364,6 +387,32 @@ class ClassificationReporter:
         )
         lines.append(f"  Unique Domains Found:    {summary['unique_domains_found']}")
         lines.append("")
+
+        # Validation section
+        if report.get("validation") and report["validation"]["total_invalid"] > 0:
+            lines.append("─" * 80)
+            lines.append("  DATA VALIDATION")
+            lines.append("─" * 80)
+            validation = report["validation"]
+            lines.append(
+                f"  Invalid Emails Skipped:  {validation['total_invalid']:,} ({validation['invalid_percentage']}%)"
+            )
+            lines.append("  Validation Errors Breakdown:")
+            breakdown = validation["breakdown"]
+            if breakdown["invalid_sender_format"] > 0:
+                lines.append(f"    - Invalid sender format:   {breakdown['invalid_sender_format']:,}")
+            if breakdown["invalid_receiver_format"] > 0:
+                lines.append(f"    - Invalid receiver format: {breakdown['invalid_receiver_format']:,}")
+            if breakdown["empty_sender"] > 0:
+                lines.append(f"    - Empty sender:            {breakdown['empty_sender']:,}")
+            if breakdown["empty_receiver"] > 0:
+                lines.append(f"    - Empty receiver:          {breakdown['empty_receiver']:,}")
+            if breakdown["empty_subject"] > 0:
+                lines.append(f"    - Empty subject:           {breakdown['empty_subject']:,}")
+            if breakdown["empty_body"] > 0:
+                lines.append(f"    - Empty body:              {breakdown['empty_body']:,}")
+            lines.append("  (See invalid_emails.csv for details)")
+            lines.append("")
 
         # Domain breakdown with bar chart
         lines.append("─" * 80)

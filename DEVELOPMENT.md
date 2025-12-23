@@ -11,8 +11,8 @@
 
 #### 1. Clone Repository
 ```bash
-git clone https://github.com/luongnv89/email-classifier.git
-cd email-classifier
+git clone https://github.com/montimage/email-domain-classifier.git
+cd email-domain-classifier
 ```
 
 #### 2. Automated Setup (Recommended)

@@ -23,7 +23,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
         
     - name: Cache pip dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v5
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt', '**/pyproject.toml') }}
@@ -62,12 +62,12 @@ jobs:
         
     - name: Test CLI installation
       run: |
-        email-classifier --version
-        email-classifier --help
-        
+        email-cli --version
+        email-cli --help
+
     - name: Test basic functionality
       run: |
-        email-classifier sample_emails.csv -o test_output/ --verbose
+        email-cli sample_emails.csv -o test_output/ --verbose
         ls test_output/
 
   security:
@@ -100,7 +100,7 @@ jobs:
     if: github.event_name == 'pull_request'
     steps:
     - name: 'Dependency Review'
-      uses: actions/dependency-review-action@v3
+      uses: actions/dependency-review-action@v4
 
   build:
     runs-on: ubuntu-latest
@@ -127,7 +127,7 @@ jobs:
         twine check dist/*
         
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: dist
         path: dist/

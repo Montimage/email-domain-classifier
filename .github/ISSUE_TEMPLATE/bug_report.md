@@ -13,7 +13,7 @@ A clear and concise description of what the bug is.
 ## Steps to Reproduce
 Please provide detailed steps to reproduce the issue:
 
-1. Run this command: `email-classifier ...`
+1. Run this command: `email-cli ...`
 2. With this input file: ...
 3. Got this error/output: ...
 4. Expected this behavior: ...
@@ -29,7 +29,7 @@ Please complete the following information:
 
 - **OS**: [e.g. Ubuntu 22.04, Windows 11, macOS 13]
 - **Python Version**: [e.g. Python 3.11.0]
-- **Package Version**: [e.g. email-classifier 1.0.0]
+- **Package Version**: [e.g. email-domain-classifier 1.0.0]
 - **Installation Method**: [e.g. pip install, pip install -e .]
 - **Input File**: [brief description of input data]
 

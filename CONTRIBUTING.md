@@ -23,8 +23,8 @@ Thank you for your interest in contributing to the Email Domain Classifier proje
 
 ```bash
 # 1. Clone your fork
-git clone https://github.com/YOUR_USERNAME/email-classifier.git
-cd email-classifier
+git clone https://github.com/YOUR_USERNAME/email-domain-classifier.git
+cd email-domain-classifier
 
 # 2. Create a virtual environment
 python -m venv .venv
@@ -38,7 +38,7 @@ pre-commit install
 
 # 5. Verify setup
 pytest --version
-email-classifier --version
+email-cli --version
 ```
 
 ## 📝 Development Workflow
@@ -73,7 +73,7 @@ email-classifier --version
    pytest --cov=email_classifier --cov-report=html
    
    # Test CLI functionality
-   email-classifier sample_emails.csv -o test_output/ --verbose
+   email-cli sample_emails.csv -o test_output/ --verbose
    ```
 
 ### Commit Message Format

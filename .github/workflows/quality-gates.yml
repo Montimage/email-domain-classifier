@@ -74,7 +74,7 @@ print(f'{float(branch_rate)*100:.1f}% branch coverage')
         fi
         
     - name: Upload quality artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: quality-metrics
@@ -112,9 +112,9 @@ print(f'{float(branch_rate)*100:.1f}% branch coverage')
     - name: Test CLI functionality
       run: |
         pip install dist/*.whl || echo "No wheels found"
-        email-classifier --version || echo "Version check failed"
-        email-classifier --help || echo "Help check failed"
-        email-classifier sample_emails.csv -o test-integration/ || echo "Integration test failed"
+        email-cli --version || echo "Version check failed"
+        email-cli --help || echo "Help check failed"
+        email-cli sample_emails.csv -o test-integration/ || echo "Integration test failed"
 
   performance-tests:
     runs-on: ubuntu-latest
@@ -151,7 +151,7 @@ print('Performance metrics collected successfully')
         fi
         
     - name: Upload performance artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: performance-metrics
         path: performance.json

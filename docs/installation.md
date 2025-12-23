@@ -12,10 +12,10 @@ This guide will help you install the Email Domain Classifier on your system.
 
 ```bash
 # Basic installation
-pip install email-classifier
+pip install email-domain-classifier
 
 # With development tools
-pip install email-classifier[dev]
+pip install email-domain-classifier[dev]
 ```
 
 ## Method 2: Install from Source
@@ -24,10 +24,10 @@ pip install email-classifier[dev]
 
 ```bash
 # Clone the repository
-git clone https://github.com/luongnv89/email-classifier.git
+git clone https://github.com/montimage/email-domain-classifier.git
 
 # Navigate into the project directory
-cd email-classifier
+cd email-domain-classifier
 ```
 
 ### Set Up Virtual Environment (Recommended)
@@ -59,13 +59,13 @@ pip install -e ".[dev]"
 
 ```bash
 # Check version
-email-classifier --version
+email-cli --version
 
-# List supported domains  
-email-classifier --list-domains
+# List supported domains
+email-cli --list-domains
 
 # Show help
-email-classifier --help
+email-cli --help
 ```
 
 ### Check Python Installation
@@ -81,8 +81,8 @@ For contributors who want to work on the codebase:
 
 ```bash
 # Clone and navigate to project
-git clone https://github.com/luongnv89/email-classifier.git
-cd email-classifier
+git clone https://github.com/montimage/email-domain-classifier.git
+cd email-domain-classifier
 
 # Create and activate virtual environment
 python -m venv .venv
@@ -162,11 +162,11 @@ sudo chown -R $USER:.local
 
 ```bash
 # Reinstall in development mode
-pip uninstall email-classifier
+pip uninstall email-domain-classifier
 pip install -e .
 
 # Verify package location
-pip show email-classifier
+pip show email-domain-classifier
 ```
 
 ### Virtual Environment Issues
@@ -215,7 +215,7 @@ pip install -r requirements-dev.txt
 
 After successful installation:
 
-1. **Try the basic example**: `email-classifier sample_emails.csv -o output/`
+1. **Try the basic example**: `email-cli sample_emails.csv -o output/`
 2. **Read the [User Guide](user-guide/index)** for comprehensive usage
 3. **Explore the [API Documentation](api/index)** for Python integration
 4. **Check the [Examples](user-guide/examples)** for practical use cases
@@ -225,9 +225,9 @@ After successful installation:
 If you encounter issues not covered here:
 
 1. **Check the [Troubleshooting Guide](user-guide/troubleshooting)**
-2. **Search existing [GitHub Issues](https://github.com/luongnv89/email-classifier/issues)**
+2. **Search existing [GitHub Issues](https://github.com/montimage/email-domain-classifier/issues)**
 3. **Create a new issue** with detailed information
-4. **Ask in [GitHub Discussions](https://github.com/luongnv89/email-classifier/discussions)**
+4. **Ask in [GitHub Discussions](https://github.com/montimage/email-domain-classifier/discussions)**
 
 ## Uninstallation
 
@@ -235,7 +235,7 @@ If you need to uninstall the package:
 
 ```bash
 # Uninstall the package
-pip uninstall email-classifier
+pip uninstall email-domain-classifier
 
 # Remove virtual environment (if created)
 rm -rf .venv

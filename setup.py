@@ -20,21 +20,21 @@ long_description = (
 )
 
 setup(
-    name="email-classifier",
+    name="email-domain-classifier",
     version="1.0.0",
     author="Montimage Security Research",
     author_email="research@montimage.com",
     description="Classify emails by domain using dual-method validation",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/luongnv89/email-classifier",
+    url="https://github.com/montimage/email-domain-classifier",
     packages=["email_classifier"],
     classifiers=[
         "Development Status :: 4 - Beta",
         "Environment :: Console",
         "Intended Audience :: Science/Research",
         "Intended Audience :: Developers",
-        "License :: OSI Approved :: MIT License",
+        "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.10",
@@ -59,7 +59,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "email-classifier=email_classifier.cli:main",
+            "email-cli=email_classifier.cli:main",
         ],
     },
     include_package_data=True,

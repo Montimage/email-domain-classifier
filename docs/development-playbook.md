@@ -56,8 +56,8 @@ flowchart TD
 
 ```bash
 # 1. Clone and navigate
-git clone https://github.com/luongnv89/email-classifier.git
-cd email-classifier
+git clone https://github.com/montimage/email-domain-classifier.git
+cd email-domain-classifier
 
 # 2. Create virtual environment
 python3.11 -m venv .venv
@@ -125,11 +125,11 @@ choco install python git visualstudiocode docker
 ```bash
 # Fork repository on GitHub first
 # Then clone your fork
-git clone https://github.com/YOUR_USERNAME/email-classifier.git
-cd email-classifier
+git clone https://github.com/YOUR_USERNAME/email-domain-classifier.git
+cd email-domain-classifier
 
 # Add upstream remote
-git remote add upstream https://github.com/luongnv89/email-classifier.git
+git remote add upstream https://github.com/montimage/email-domain-classifier.git
 
 # Verify remotes
 git remote -v
@@ -164,7 +164,7 @@ pip install -e ".[dev]"
 # - Documentation tools (sphinx, sphinx-rtd-theme)
 
 # Verify installation
-pip list | grep email-classifier
+pip list | grep email-domain-classifier
 ```
 
 ### Step 5: Development Tools Configuration

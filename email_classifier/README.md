@@ -24,8 +24,8 @@ If you're working on this module specifically:
 
 ```bash
 # Clone repository
-git clone https://github.com/luongnv89/email-classifier.git
-cd email-classifier
+git clone https://github.com/montimage/email-domain-classifier.git
+cd email-domain-classifier
 
 # Set up development environment
 python -m venv .venv
@@ -133,7 +133,7 @@ The module includes test data in `sample_emails.csv` for consistent testing:
 
 ```bash
 # Use sample data for quick testing
-email-classifier sample_emails.csv -o test_output/
+email-cli sample_emails.csv -o test_output/
 ```
 
 ### Test Categories
@@ -161,13 +161,13 @@ pytest -v tests/test_classifier.py
 
 ```bash
 # Run with verbose logging
-email-classifier data.csv -o output/ --verbose
+email-cli data.csv -o output/ --verbose
 
 # Include detailed classification scores
-email-classifier data.csv -o output/ --include-details
+email-cli data.csv -o output/ --include-details
 
 # Custom log file
-email-classifier data.csv -o output/ --log-file debug.log
+email-cli data.csv -o output/ --log-file debug.log
 ```
 
 ### Python Debugging
@@ -256,7 +256,7 @@ For module-specific issues:
 
 1. **Check module tests**: `pytest tests/`
 2. **Review documentation**: [API Docs](../api/)
-3. **Search existing issues**: [GitHub Issues](https://github.com/luongnv89/email-classifier/issues)
+3. **Search existing issues**: [GitHub Issues](https://github.com/montimage/email-domain-classifier/issues)
 4. **Create new issue**: Include module name in issue title
 
 ## 📝 Contributing

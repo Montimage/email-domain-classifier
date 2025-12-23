@@ -60,7 +60,7 @@ Related to #
 ```bash
 # Example test commands
 pytest tests/
-email-classifier sample_emails.csv -o test_output/
+email-cli sample_emails.csv -o test_output/
 black --check .
 isort --check-only .
 mypy email_classifier/
@@ -129,7 +129,7 @@ mypy email_classifier/
 <!-- If this is a new feature, provide example usage -->
 ```bash
 # Example CLI usage
-email-classifier input.csv -o output/ --new-feature
+email-cli input.csv -o output/ --new-feature
 
 # Example Python usage
 from email_classifier import EmailClassifier

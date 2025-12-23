@@ -156,3 +156,5 @@ openspec/
 .gemini
 .opencode
 .ruff_cache
+AGENTS.md
+CLAUDE.md

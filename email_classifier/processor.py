@@ -16,6 +16,7 @@ from typing import Callable, Dict, Generator, List, Optional
 
 from .classifier import EmailClassifier, EmailData
 from .domains import get_domain_names
+from .validator import EmailValidator, InvalidEmailWriter, ValidationStats
 
 
 @dataclass
@@ -46,6 +47,8 @@ class ProcessingStats:
             lambda: defaultdict(lambda: defaultdict(int))
         )
     )
+    # Validation statistics
+    validation_stats: ValidationStats = field(default_factory=ValidationStats)
 
     def to_dict(self) -> Dict:
         """Convert stats to dictionary."""
@@ -72,20 +75,45 @@ class ProcessingStats:
                 k: {l: dict(v) for l, v in val.items()}
                 for k, val in self.cross_tabulation.items()
             },
+            "validation": self.validation_stats.to_dict(),
         }
 
 
 class OutputManager:
     """Manages output CSV files for each domain."""
 
-    def __init__(self, output_dir: Path, fieldnames: List[str]):
+    # Standard columns in required order
+    STANDARD_COLUMNS = ["sender", "receiver", "date", "subject", "body", "urls", "label"]
+
+    # Classification columns (always after standard)
+    CLASSIFICATION_COLUMNS = ["classified_domain", "method1_domain", "method2_domain"]
+
+    # Optional detail columns
+    DETAIL_COLUMNS = ["method1_confidence", "method2_confidence", "agreement"]
+
+    def __init__(self, output_dir: Path, fieldnames: List[str], include_details: bool = False):
         self.output_dir = output_dir
-        self.fieldnames = fieldnames
+        self.include_details = include_details
         self.files = {}
         self.writers = {}
 
+        # Build ordered fieldnames
+        self.fieldnames = self._build_fieldnames(fieldnames, include_details)
+
         # Ensure output directory exists
         self.output_dir.mkdir(parents=True, exist_ok=True)
+
+    def _build_fieldnames(self, input_fieldnames: List[str], include_details: bool) -> List[str]:
+        """Build ordered fieldnames list with standard columns first."""
+        fieldnames = self.STANDARD_COLUMNS.copy()
+        fieldnames.extend(self.CLASSIFICATION_COLUMNS)
+        if include_details:
+            fieldnames.extend(self.DETAIL_COLUMNS)
+        # Add any extra columns from input that are not already included
+        for col in input_fieldnames:
+            if col not in fieldnames and col not in ["timestamp", "has_url"]:
+                fieldnames.append(col)
+        return fieldnames
 
     def _get_writer(self, domain: str):
         """Get or create CSV writer for domain."""
@@ -133,6 +161,8 @@ class StreamingProcessor:
     - Real-time progress tracking
     - Comprehensive logging
     - Statistics collection
+    - Email validation with invalid email logging
+    - Standardized output column structure
     """
 
     # Default expected CSV columns
@@ -146,18 +176,59 @@ class StreamingProcessor:
         "urls",
     ]
 
+    # Column mappings from input to standard output
+    COLUMN_MAPPINGS = {
+        "timestamp": "date",
+        "has_url": "urls",
+    }
+
     def __init__(
         self,
         classifier: EmailClassifier = None,
         chunk_size: int = 1000,
         logger: logging.Logger = None,
         allow_large_fields: bool = False,
+        strict_validation: bool = False,
     ):
         self.classifier = classifier or EmailClassifier()
         self.chunk_size = chunk_size
         self.logger = logger or logging.getLogger(__name__)
         self.allow_large_fields = allow_large_fields
+        self.strict_validation = strict_validation
+        self.validator = EmailValidator()
         self.stats = ProcessingStats()
+
+    def _normalize_row(self, row: Dict) -> Dict:
+        """
+        Apply column mappings and ensure standard structure.
+
+        Maps alternative column names to standard names and handles
+        special conversions like has_url -> urls.
+        """
+        normalized = {}
+
+        for standard_col in OutputManager.STANDARD_COLUMNS:
+            # Check if there's a mapped column in the input
+            input_col = standard_col
+            for mapped_from, mapped_to in self.COLUMN_MAPPINGS.items():
+                if mapped_to == standard_col and mapped_from in row:
+                    input_col = mapped_from
+                    break
+
+            value = row.get(input_col, "")
+
+            # Special handling for has_url -> urls conversion
+            if input_col == "has_url":
+                value = "true" if str(value).lower() in ("true", "1", "yes", "on") else ""
+
+            normalized[standard_col] = value
+
+        # Copy any extra columns that are not in standard columns or mappings
+        for col, val in row.items():
+            if col not in normalized and col not in self.COLUMN_MAPPINGS:
+                normalized[col] = val
+
+        return normalized
 
     def count_rows(self, input_path: Path) -> int:
         """Count total rows in CSV file for progress tracking."""
@@ -279,40 +350,71 @@ class StreamingProcessor:
         total_rows = self.count_rows(input_path)
         self.logger.info(f"Total emails to process: {total_rows}")
 
-        # Determine output fieldnames
+        # Determine input fieldnames for invalid email writer
         current_limit = csv.field_size_limit()
-        # Start with standard columns in order
-        fieldnames = self.EXPECTED_COLUMNS.copy()
+        input_fieldnames = []
 
         try:
             if self.allow_large_fields:
-                csv.field_size_limit(2**31 - 1)  # Set to a very large limit
+                csv.field_size_limit(2**31 - 1)
 
             with open(input_path, "r", encoding="utf-8", errors="replace") as f:
                 reader = csv.DictReader(f)
                 if reader.fieldnames:
-                    # Keep standard columns first, then add any extra columns from input
-                    extra_cols = [c for c in reader.fieldnames if c not in fieldnames]
-                    fieldnames.extend(extra_cols)
+                    input_fieldnames = list(reader.fieldnames)
         finally:
             csv.field_size_limit(current_limit)
 
-        # Add classification columns
-        fieldnames.extend(["classified_domain", "method1_domain", "method2_domain"])
-        if include_details:
-            fieldnames.extend(["method1_confidence", "method2_confidence", "agreement"])
+        # Initialize output manager with standardized columns
+        output_manager = OutputManager(output_dir, input_fieldnames, include_details)
 
-        # Initialize output manager
-        output_manager = OutputManager(output_dir, fieldnames)
+        # Initialize invalid email writer
+        invalid_writer = InvalidEmailWriter(output_dir, input_fieldnames)
 
         try:
             for idx, email_dict in enumerate(self._stream_emails(input_path)):
                 try:
-                    # Classify email
-                    domain, details = self.classifier.classify_dict(email_dict)
+                    # Validate email before processing
+                    validation_result = self.validator.validate(email_dict)
 
-                    # Prepare output row
-                    output_row = email_dict.copy()
+                    if not validation_result.is_valid:
+                        # Write to invalid emails file
+                        invalid_writer.write(email_dict, validation_result.errors)
+
+                        # Update validation stats
+                        for error in validation_result.errors:
+                            if error == "invalid_sender_format":
+                                self.stats.validation_stats.invalid_sender_format += 1
+                            elif error == "invalid_receiver_format":
+                                self.stats.validation_stats.invalid_receiver_format += 1
+                            elif error == "empty_sender":
+                                self.stats.validation_stats.invalid_empty_sender += 1
+                            elif error == "empty_receiver":
+                                self.stats.validation_stats.invalid_empty_receiver += 1
+                            elif error == "empty_subject":
+                                self.stats.validation_stats.invalid_empty_subject += 1
+                            elif error == "empty_body":
+                                self.stats.validation_stats.invalid_empty_body += 1
+
+                        self.stats.validation_stats.total_invalid += 1
+
+                        # In strict mode, raise an error
+                        if self.strict_validation:
+                            raise ValueError(
+                                f"Validation failed for email {idx + 1}: {validation_result.errors}"
+                            )
+
+                        # Skip to next email
+                        continue
+
+                    # Normalize row to standard column structure
+                    normalized_row = self._normalize_row(email_dict)
+
+                    # Classify email
+                    domain, details = self.classifier.classify_dict(normalized_row)
+
+                    # Prepare output row with standard columns
+                    output_row = normalized_row.copy()
                     output_row["label"] = domain
                     output_row["classified_domain"] = domain
                     output_row["method1_domain"] = (
@@ -348,7 +450,7 @@ class StreamingProcessor:
                     self.stats.label_distributions[domain][original_label] += 1
 
                     # Parse has_url value (handle various formats)
-                    has_url_value = email_dict.get("has_url", "false")
+                    has_url_value = email_dict.get("has_url", email_dict.get("urls", "false"))
                     if isinstance(has_url_value, str):
                         has_url = has_url_value.lower() in ("true", "1", "yes", "on")
                     else:
@@ -370,13 +472,21 @@ class StreamingProcessor:
                             idx + 1, total_rows, f"Processing email {idx + 1}"
                         )
 
+                except ValueError as e:
+                    # Re-raise ValueError (used for strict validation mode)
+                    if self.strict_validation:
+                        raise
+                    self.stats.errors += 1
+                    self.logger.error(f"Error processing email {idx + 1}: {e}")
+
                 except Exception as e:
                     self.stats.errors += 1
                     self.logger.error(f"Error processing email {idx + 1}: {e}")
 
                     # Still write to unsure if there's an error
                     try:
-                        output_row = email_dict.copy()
+                        normalized_row = self._normalize_row(email_dict)
+                        output_row = normalized_row.copy()
                         output_row["label"] = "unsure"
                         output_row["classified_domain"] = "unsure"
                         output_row["method1_domain"] = "error"
@@ -396,6 +506,7 @@ class StreamingProcessor:
 
         finally:
             output_manager.close_all()
+            invalid_writer.close()
 
         self.stats.end_time = datetime.now()
 
@@ -405,6 +516,7 @@ class StreamingProcessor:
         self.logger.info(f"Total processed: {self.stats.total_processed}")
         self.logger.info(f"Total classified: {self.stats.total_classified}")
         self.logger.info(f"Total unsure: {self.stats.total_unsure}")
+        self.logger.info(f"Total invalid (skipped): {self.stats.validation_stats.total_invalid}")
         self.logger.info(f"Errors: {self.stats.errors}")
 
         return self.stats

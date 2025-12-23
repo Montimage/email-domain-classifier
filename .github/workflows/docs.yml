@@ -34,7 +34,7 @@ jobs:
         python-version: "3.11"
         
     - name: Cache pip dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v5
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-docs-${{ hashFiles('**/pyproject.toml') }}
@@ -59,7 +59,7 @@ jobs:
         ls -la
         
     - name: Upload documentation artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: documentation
         path: docs/_build/html/
@@ -75,22 +75,22 @@ jobs:
     
     steps:
     - name: Download documentation
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v7
       with:
         name: documentation
         path: docs/_build/html/
         
     - name: Setup Pages
-      uses: actions/configure-pages@v3
+      uses: actions/configure-pages@v5
       
     - name: Upload to GitHub Pages
-      uses: actions/upload-pages-artifact@v2
+      uses: actions/upload-pages-artifact@v4
       with:
         path: docs/_build/html/
         
     - name: Deploy to GitHub Pages
       id: deployment
-      uses: actions/deploy-pages@v2
+      uses: actions/deploy-pages@v4
 
   test-docs:
     runs-on: ubuntu-latest

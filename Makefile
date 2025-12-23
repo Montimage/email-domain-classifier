@@ -1,11 +1,11 @@
-# Makefile for email-classifier development operations
+# Makefile for email-domain-classifier development operations
 # Part of Enhanced DevOps Quality Gates implementation
 
 .PHONY: help install install-dev setup lint security quality test clean all
 
 # Default target
 help: ## Show this help message
-	@echo "🎯 Email Classifier Development Commands:"
+	@echo "🎯 Email Domain Classifier Development Commands:"
 	@echo ""
 	@echo "🔧 Setup & Installation:"
 	@echo "  install       Install package in development mode"

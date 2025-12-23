@@ -6,9 +6,9 @@ A command-line tool for classifying emails by domain using
 dual-method validation (keyword taxonomy + structural templates).
 
 Usage:
-    email-classifier input.csv -o output_dir/
-    email-classifier input.csv --output output_dir/ --verbose
-    email-classifier input.csv -o output_dir/ --include-details
+    email-cli input.csv -o output_dir/
+    email-cli input.csv --output output_dir/ --verbose
+    email-cli input.csv -o output_dir/ --include-details
 """
 
 import argparse
@@ -63,14 +63,14 @@ def validate_input(input_path: Path) -> bool:
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
-        prog="email-classifier",
+        prog="email-cli",
         description="Classify emails by domain using dual-method validation.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  email-classifier emails.csv -o classified/
-  email-classifier data/input.csv --output results/ --verbose
-  email-classifier emails.csv -o output/ --include-details --chunk-size 500
+  email-cli emails.csv -o classified/
+  email-cli data/input.csv --output results/ --verbose
+  email-cli emails.csv -o output/ --include-details --chunk-size 500
 
 Output:
   Creates email_[domain].csv files for each detected domain,
@@ -152,6 +152,13 @@ Output:
         help="Allow processing of CSV fields larger than Python default limit (131,072 characters)",
     )
 
+    # Validation options
+    parser.add_argument(
+        "--strict-validation",
+        action="store_true",
+        help="Fail processing if any invalid emails are found (default: skip and log invalid emails)",
+    )
+
     # Handle --list-domains early (before parsing required args)
     if "--list-domains" in sys.argv:
         print("\nSupported Domain Categories:")
@@ -194,6 +201,7 @@ Output:
     logger.info(f"Output directory: {output_dir}")
     logger.info(f"Chunk size: {args.chunk_size}")
     logger.info(f"Include details: {args.include_details}")
+    logger.info(f"Strict validation: {args.strict_validation}")
 
     # Display configuration
     if not args.quiet:
@@ -203,6 +211,7 @@ Output:
             {
                 "Chunk Size": args.chunk_size,
                 "Include Details": args.include_details,
+                "Strict Validation": args.strict_validation,
                 "Log File": str(log_file),
             },
         )
@@ -214,6 +223,7 @@ Output:
         chunk_size=args.chunk_size,
         logger=logger,
         allow_large_fields=args.allow_large_fields,
+        strict_validation=args.strict_validation,
     )
 
     # Process emails with progress tracking
@@ -287,7 +297,8 @@ Output:
         # Display results in terminal
         if not args.quiet:
             ui.print_domain_stats(
-                dict(stats.domain_counts), stats.total_processed, report
+                dict(stats.domain_counts), stats.total_processed, report,
+                input_file=input_path.name
             )
             ui.print_summary_panel(report)
 

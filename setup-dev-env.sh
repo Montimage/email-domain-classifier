@@ -4,7 +4,7 @@
 
 set -e  # Exit on any error
 
-echo "🚀 Setting up development environment for email-classifier..."
+echo "🚀 Setting up development environment for email-domain-classifier..."
 
 # Check if virtual environment exists
 if [ ! -d ".venv" ]; then

@@ -6,11 +6,11 @@ Welcome to the comprehensive documentation for Email Domain Classifier! This pow
 
 ```bash
 # Install and run in 5 minutes
-git clone https://github.com/luongnv89/email-classifier.git
-cd email-classifier
+git clone https://github.com/montimage/email-domain-classifier.git
+cd email-domain-classifier
 python -m venv .venv && source .venv/bin/activate
 pip install -e .
-email-classifier sample_emails.csv -o output/
+email-cli sample_emails.csv -o output/
 ```
 
 ## 📚 Documentation Structure
@@ -257,10 +257,10 @@ gantt
 
 ## 🔗 External Links
 
-- **GitHub Repository**: https://github.com/luongnv89/email-classifier
-- **PyPI Package**: https://pypi.org/project/email-classifier/
-- **Issue Tracker**: https://github.com/luongnv89/email-classifier/issues
-- **Discussions**: https://github.com/luongnv89/email-classifier/discussions
+- **GitHub Repository**: https://github.com/montimage/email-domain-classifier
+- **PyPI Package**: https://pypi.org/project/email-domain-classifier/
+- **Issue Tracker**: https://github.com/montimage/email-domain-classifier/issues
+- **Discussions**: https://github.com/montimage/email-domain-classifier/discussions
 - **Security Issues**: security@montimage.com
 
 ## 🆘 Getting Help
@@ -269,21 +269,21 @@ gantt
 
 ```bash
 # Get CLI help
-email-classifier --help
+email-cli --help
 
 # List supported domains
-email-classifier --list-domains
+email-cli --list-domains
 
 # Check version
-email-classifier --version
+email-cli --version
 ```
 
 ### Community Support
 
-- **Documentation Issues**: [Create documentation issue](https://github.com/luongnv89/email-classifier/issues/new?assignees=&labels=documentation&template=documentation.md)
-- **Feature Requests**: [Suggest new features](https://github.com/luongnv89/email-classifier/issues/new?assignees=&labels=enhancement&template=feature_request.md)
-- **Bug Reports**: [Report bugs](https://github.com/luongnv89/email-classifier/issues/new?assignees=&labels=bug&template=bug_report.md)
-- **Questions**: [Ask community](https://github.com/luongnv89/email-classifier/discussions/categories/q-a)
+- **Documentation Issues**: [Create documentation issue](https://github.com/montimage/email-domain-classifier/issues/new?assignees=&labels=documentation&template=documentation.md)
+- **Feature Requests**: [Suggest new features](https://github.com/montimage/email-domain-classifier/issues/new?assignees=&labels=enhancement&template=feature_request.md)
+- **Bug Reports**: [Report bugs](https://github.com/montimage/email-domain-classifier/issues/new?assignees=&labels=bug&template=bug_report.md)
+- **Questions**: [Ask community](https://github.com/montimage/email-domain-classifier/discussions/categories/q-a)
 
 ### Professional Support
 

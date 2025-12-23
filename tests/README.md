@@ -365,8 +365,8 @@ pytest tests/test_enhanced_statistics.py -m "not slow"
 
 1. **Check test logs**: `pytest -v --tb=long`
 2. **Review documentation**: [Development Guide](../docs/development-playbook.md)
-3. **Search issues**: [GitHub Issues](https://github.com/luongnv89/email-classifier/issues)
-4. **Ask in discussions**: [GitHub Discussions](https://github.com/luongnv89/email-classifier/discussions)
+3. **Search issues**: [GitHub Issues](https://github.com/montimage/email-domain-classifier/issues)
+4. **Ask in discussions**: [GitHub Discussions](https://github.com/montimage/email-domain-classifier/discussions)
 
 ---
 

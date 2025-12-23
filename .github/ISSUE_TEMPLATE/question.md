@@ -42,7 +42,7 @@ Please complete the following information:
 
 - **OS**: [e.g. Ubuntu 22.04, Windows 11, macOS 13]
 - **Python Version**: [e.g. Python 3.11.0]
-- **Package Version**: [e.g. email-classifier 1.0.0]
+- **Package Version**: [e.g. email-domain-classifier 1.0.0]
 - **Installation Method**: [e.g. pip install, pip install -e .]
 
 ## Expected vs Actual

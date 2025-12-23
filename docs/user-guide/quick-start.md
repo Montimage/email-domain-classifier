@@ -8,8 +8,8 @@ Get up and running with Email Domain Classifier in just 5 minutes! This guide wi
 
 ```bash
 # Clone the repository
-git clone https://github.com/luongnv89/email-classifier.git
-cd email-classifier
+git clone https://github.com/montimage/email-domain-classifier.git
+cd email-domain-classifier
 
 # Create and activate virtual environment (recommended)
 python -m venv .venv
@@ -23,7 +23,7 @@ pip install -e .
 
 ```bash
 # Use the provided sample data
-email-classifier sample_emails.csv -o classified_emails/
+email-cli sample_emails.csv -o classified_emails/
 ```
 
 ### Step 3: View Results
@@ -97,19 +97,19 @@ Your CSV must have these columns:
 
 ```bash
 # Basic classification
-email-classifier your_data.csv -o output/
+email-cli your_data.csv -o output/
 
 # With detailed output and progress
-email-classifier your_data.csv -o output/ --verbose --include-details
+email-cli your_data.csv -o output/ --verbose --include-details
 
 # For large files, adjust chunk size
-email-classifier large_dataset.csv -o output/ --chunk-size 500
+email-cli large_dataset.csv -o output/ --chunk-size 500
 ```
 
 ## 🔧 Common Options
 
 ```bash
-email-classifier [OPTIONS] INPUT_FILE
+email-cli [OPTIONS] INPUT_FILE
 
 Essential Options:
   -o, --output DIR          Output directory (required)
@@ -168,14 +168,14 @@ Now that you're up and running:
 
 ```bash
 # Get help with commands
-email-classifier --help
+email-cli --help
 
 # Check your installation
-email-classifier --version
-email-classifier --list-domains
+email-cli --version
+email-cli --list-domains
 
 # Test with verbose output for debugging
-email-classifier sample_emails.csv -o test/ --verbose
+email-cli sample_emails.csv -o test/ --verbose
 ```
 
 ---

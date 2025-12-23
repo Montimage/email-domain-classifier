@@ -103,6 +103,6 @@ output/
 ## Need Help?
 
 - **Check our [Troubleshooting Guide](troubleshooting.md)**
-- **Search existing [GitHub Issues](https://github.com/luongnv89/email-classifier/issues)**
-- **Ask in [GitHub Discussions](https://github.com/luongnv89/email-classifier/discussions)**
+- **Search existing [GitHub Issues](https://github.com/montimage/email-domain-classifier/issues)**
+- **Ask in [GitHub Discussions](https://github.com/montimage/email-domain-classifier/discussions)**
 - **Contact us**: research@montimage.com

@@ -149,6 +149,7 @@ class TerminalUI:
         domain_counts: Dict[str, int],
         total: int,
         enhanced_stats: Optional[Dict] = None,
+        input_file: Optional[str] = None,
     ):
         """Display domain statistics table."""
         if self.quiet or not self.console:
@@ -214,8 +215,9 @@ class TerminalUI:
         # Enhanced statistics if available
         if enhanced_stats:
             # Combined Enhanced Statistics Table
+            title = f"Email classified by domain - {input_file}" if input_file else "Email classified by domain"
             enhanced_table = Table(
-                title="Enhanced Classification Statistics",
+                title=title,
                 box=box.ROUNDED,
                 border_style="cyan",
                 header_style="bold white on dark_blue",
@@ -309,6 +311,7 @@ class TerminalUI:
         summary = stats.get("summary", {})
         timing = stats.get("timing", {})
         quality = stats.get("quality_metrics", {})
+        validation = stats.get("validation", {})
 
         # Create summary text
         content = Text()
@@ -329,6 +332,14 @@ class TerminalUI:
         content.append("  Errors:            ", style="dim")
         error_style = "red" if summary.get("errors", 0) > 0 else "green"
         content.append(f"{summary.get('errors', 0):,}\n", style=error_style)
+
+        # Validation stats if there are any invalid emails
+        if validation.get("total_invalid", 0) > 0:
+            content.append("\n🔍 Validation\n\n", style="bold cyan")
+            content.append("  Invalid (skipped): ", style="dim")
+            content.append(f"{validation.get('total_invalid', 0):,}", style="bold yellow")
+            content.append(f" ({validation.get('invalid_percentage', 0)}%)\n", style="yellow")
+            content.append("  (See invalid_emails.csv)\n", style="dim")
 
         content.append("\n⏱️  Performance\n\n", style="bold cyan")
 

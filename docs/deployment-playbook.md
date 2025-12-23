@@ -85,8 +85,8 @@ sudo apt install git
 
 ```bash
 # Clone repository
-git clone https://github.com/luongnv89/email-classifier.git
-cd email-classifier
+git clone https://github.com/montimage/email-domain-classifier.git
+cd email-domain-classifier
 
 # Create virtual environment
 python3.11 -m venv .venv
@@ -96,7 +96,7 @@ source .venv/bin/activate
 pip install -e .
 
 # Verify installation
-email-classifier --version
+email-cli --version
 ```
 
 ### Step 3: Configuration
@@ -186,7 +186,7 @@ RUN chmod +x /app/output /app/logs
 VOLUME ["/app/input", "/app/output", "/app/logs"]
 
 # Default command
-CMD ["email-classifier", "--help"]
+CMD ["email-cli", "--help"]
 ```
 
 ### Docker Compose
@@ -206,7 +206,7 @@ services:
       - ./data/output:/app/output
       - ./logs:/app/logs
     command: >
-      email-classifier 
+      email-cli
       /app/input/emails.csv 
       -o /app/output
       --verbose
@@ -234,7 +234,7 @@ docker run --rm \
   -v $(pwd)/data:/app/data \
   -v $(pwd)/output:/app/output \
   email-classifier:latest \
-  email-classifier /app/data/emails.csv -o /app/output
+  email-cli /app/data/emails.csv -o /app/output
 
 # Use Docker Compose
 docker-compose up -d
@@ -265,8 +265,8 @@ aws ec2 run-instances \
 apt-get update -y
 apt-get install -y python3.11 python3.11-venv git
 cd /opt
-git clone https://github.com/luongnv89/email-classifier.git
-cd email-classifier
+git clone https://github.com/montimage/email-domain-classifier.git
+cd email-domain-classifier
 python3.11 -m venv .venv
 source .venv/bin/activate
 pip install -e .
@@ -276,7 +276,7 @@ aws s3 mb s3://email-classifier-data
 aws s3 cp sample-data.csv s3://email-classifier-data/input/
 
 # 4. Run with S3
-email-classifier s3://email-classifier-data/input/emails.csv -o s3://email-classifier-data/output/
+email-cli s3://email-classifier-data/input/emails.csv -o s3://email-classifier-data/output/
 ```
 
 ### GCP Deployment
@@ -294,8 +294,8 @@ gcloud compute instances create email-classifier \
 apt-get update
 apt-get install -y python3.11 python3.11-venv git
 cd /opt
-git clone https://github.com/luongnv89/email-classifier.git
-cd email-classifier
+git clone https://github.com/montimage/email-domain-classifier.git
+cd email-domain-classifier
 python3.11 -m venv .venv
 source .venv/bin/activate
 pip install -e .
@@ -305,7 +305,7 @@ pip install -e .
 
 ```bash
 # Create Resource Group
-az group create --name email-classifier --location eastus
+az group create --name email-cli --location eastus
 
 # Create VM
 az vm create \
@@ -427,11 +427,11 @@ gantt
 
 ```bash
 # Functional testing
-email-classifier --version
-email-classifier --list-domains
+email-cli --version
+email-cli --list-domains
 
 # Performance testing
-time email-classifier sample_emails.csv -o /tmp/test-output/
+time email-cli sample_emails.csv -o /tmp/test-output/
 
 # Service status check
 sudo systemctl status email-classifier
@@ -498,7 +498,7 @@ sudo chmod -R 755 /var/lib/email-classifier
 ```bash
 # Reduce chunk size
 export EMAIL_CLASSIFIER_CHUNK_SIZE=500
-email-classifier data.csv -o output/
+email-cli data.csv -o output/
 
 # Increase swap space
 sudo fallocate -l 2G /swapfile

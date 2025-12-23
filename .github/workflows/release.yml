@@ -68,8 +68,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./dist/email-classifier-${{ github.ref_name }}.tar.gz
-        asset_name: email-classifier-${{ github.ref_name }}.tar.gz
+        asset_path: ./dist/email-domain-classifier-${{ github.ref_name }}.tar.gz
+        asset_name: email-domain-classifier-${{ github.ref_name }}.tar.gz
         asset_content_type: application/gzip
 
   update-docs:
@@ -98,7 +98,7 @@ jobs:
         make html
         
     - name: Deploy to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v3
+      uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./docs/_build/html
@@ -111,11 +111,11 @@ jobs:
       run: |
         echo "## 🎉 Release ${{ github.ref_name }} Published!" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **PyPI Package**: https://pypi.org/project/email-classifier/${{ github.ref_name }}/" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **PyPI Package**: https://pypi.org/project/email-domain-classifier/${{ github.ref_name }}/" >> $GITHUB_STEP_SUMMARY
         echo "✅ **GitHub Release**: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Documentation**: https://${{ github.repository_owner }}.github.io/email-classifier/" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **Documentation**: https://${{ github.repository_owner }}.github.io/email-domain-classifier/" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Installation" >> $GITHUB_STEP_SUMMARY
         echo '```bash' >> $GITHUB_STEP_SUMMARY
-        echo "pip install email-classifier==${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "pip install email-domain-classifier==${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
         echo '```' >> $GITHUB_STEP_SUMMARY
