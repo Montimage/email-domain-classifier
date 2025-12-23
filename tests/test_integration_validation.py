@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from email_classifier.classifier import EmailClassifier
-from email_classifier.processor import StreamingProcessor, OutputManager
+from email_classifier.processor import OutputManager, StreamingProcessor
 
 
 class TestIntegrationValidation:
@@ -64,7 +64,14 @@ class TestIntegrationValidation:
                 },
             ]
 
-            fieldnames = ["sender", "receiver", "subject", "body", "timestamp", "has_url"]
+            fieldnames = [
+                "sender",
+                "receiver",
+                "subject",
+                "body",
+                "timestamp",
+                "has_url",
+            ]
             self.create_test_csv(data, fieldnames, input_path)
 
             # Process
@@ -79,7 +86,7 @@ class TestIntegrationValidation:
             invalid_path = output_dir / "invalid_emails.csv"
             assert invalid_path.exists()
 
-            with open(invalid_path, "r", encoding="utf-8") as f:
+            with open(invalid_path, encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 invalid_rows = list(reader)
 
@@ -107,7 +114,14 @@ class TestIntegrationValidation:
                 },
             ]
 
-            fieldnames = ["sender", "receiver", "subject", "body", "timestamp", "has_url"]
+            fieldnames = [
+                "sender",
+                "receiver",
+                "subject",
+                "body",
+                "timestamp",
+                "has_url",
+            ]
             self.create_test_csv(data, fieldnames, input_path)
 
             # Process with strict validation
@@ -148,7 +162,14 @@ class TestIntegrationOutputStandardization:
             ]
 
             # Input columns in non-standard order
-            fieldnames = ["body", "timestamp", "subject", "has_url", "receiver", "sender"]
+            fieldnames = [
+                "body",
+                "timestamp",
+                "subject",
+                "has_url",
+                "receiver",
+                "sender",
+            ]
             self.create_test_csv(data, fieldnames, input_path)
 
             # Process
@@ -160,14 +181,24 @@ class TestIntegrationOutputStandardization:
             assert len(output_files) > 0
 
             # Check column order in output
-            with open(output_files[0], "r", encoding="utf-8") as f:
+            with open(output_files[0], encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 output_fieldnames = reader.fieldnames
 
             # Standard columns should be first
-            expected_start = ["sender", "receiver", "date", "subject", "body", "urls", "label"]
+            expected_start = [
+                "sender",
+                "receiver",
+                "date",
+                "subject",
+                "body",
+                "urls",
+                "label",
+            ]
             for i, col in enumerate(expected_start):
-                assert output_fieldnames[i] == col, f"Column {i} should be {col}, got {output_fieldnames[i]}"
+                assert (
+                    output_fieldnames[i] == col
+                ), f"Column {i} should be {col}, got {output_fieldnames[i]}"
 
     def test_timestamp_mapped_to_date(self):
         """Test that 'timestamp' column is mapped to 'date'."""
@@ -186,14 +217,21 @@ class TestIntegrationOutputStandardization:
                 },
             ]
 
-            fieldnames = ["sender", "receiver", "subject", "body", "timestamp", "has_url"]
+            fieldnames = [
+                "sender",
+                "receiver",
+                "subject",
+                "body",
+                "timestamp",
+                "has_url",
+            ]
             self.create_test_csv(data, fieldnames, input_path)
 
             processor = StreamingProcessor()
             processor.process(input_path, output_dir)
 
             output_files = list(output_dir.glob("email_*.csv"))
-            with open(output_files[0], "r", encoding="utf-8") as f:
+            with open(output_files[0], encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 rows = list(reader)
 
@@ -227,7 +265,14 @@ class TestIntegrationOutputStandardization:
                 },
             ]
 
-            fieldnames = ["sender", "receiver", "subject", "body", "timestamp", "has_url"]
+            fieldnames = [
+                "sender",
+                "receiver",
+                "subject",
+                "body",
+                "timestamp",
+                "has_url",
+            ]
             self.create_test_csv(data, fieldnames, input_path)
 
             processor = StreamingProcessor()
@@ -237,7 +282,7 @@ class TestIntegrationOutputStandardization:
 
             all_rows = []
             for f in output_files:
-                with open(f, "r", encoding="utf-8") as csvfile:
+                with open(f, encoding="utf-8") as csvfile:
                     reader = csv.DictReader(csvfile)
                     all_rows.extend(list(reader))
 
@@ -271,7 +316,14 @@ class TestIntegrationOutputStandardization:
                 },
             ]
 
-            fieldnames = ["sender", "receiver", "subject", "body", "timestamp", "has_url"]
+            fieldnames = [
+                "sender",
+                "receiver",
+                "subject",
+                "body",
+                "timestamp",
+                "has_url",
+            ]
             self.create_test_csv(data, fieldnames, input_path)
 
             processor = StreamingProcessor()
@@ -291,15 +343,32 @@ class TestOutputManagerStandardColumns:
 
     def test_build_fieldnames_standard_order(self):
         """Test that _build_fieldnames produces correct column order."""
-        input_fieldnames = ["body", "timestamp", "subject", "sender", "receiver", "extra_col"]
+        input_fieldnames = [
+            "body",
+            "timestamp",
+            "subject",
+            "sender",
+            "receiver",
+            "extra_col",
+        ]
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            output_manager = OutputManager(Path(tmpdir), input_fieldnames, include_details=False)
+            output_manager = OutputManager(
+                Path(tmpdir), input_fieldnames, include_details=False
+            )
 
             fieldnames = output_manager.fieldnames
 
             # Verify standard columns come first
-            expected_standard = ["sender", "receiver", "date", "subject", "body", "urls", "label"]
+            expected_standard = [
+                "sender",
+                "receiver",
+                "date",
+                "subject",
+                "body",
+                "urls",
+                "label",
+            ]
             for i, col in enumerate(expected_standard):
                 assert fieldnames[i] == col
 
@@ -316,7 +385,9 @@ class TestOutputManagerStandardColumns:
         input_fieldnames = ["sender", "receiver", "subject", "body"]
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            output_manager = OutputManager(Path(tmpdir), input_fieldnames, include_details=True)
+            output_manager = OutputManager(
+                Path(tmpdir), input_fieldnames, include_details=True
+            )
 
             fieldnames = output_manager.fieldnames
 
@@ -324,3 +395,201 @@ class TestOutputManagerStandardColumns:
             assert "method1_confidence" in fieldnames
             assert "method2_confidence" in fieldnames
             assert "agreement" in fieldnames
+
+
+class TestMaxBodyLengthFiltering:
+    """Integration tests for max body length filtering."""
+
+    def create_test_csv(self, data: list, fieldnames: list, filepath: Path):
+        """Helper to create test CSV files."""
+        with open(filepath, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(data)
+
+    def test_emails_exceeding_max_body_length_skipped(self):
+        """Test that emails with body length > max_body_length are skipped."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_path = Path(tmpdir) / "input.csv"
+            output_dir = Path(tmpdir) / "output"
+
+            # Create test data with varying body lengths
+            data = [
+                {
+                    "sender": "short@example.com",
+                    "receiver": "recipient@example.com",
+                    "subject": "Short Email",
+                    "body": "Short body under limit.",  # ~24 chars
+                    "timestamp": "2024-01-15",
+                    "has_url": "false",
+                },
+                {
+                    "sender": "long@example.com",
+                    "receiver": "recipient@example.com",
+                    "subject": "Long Email",
+                    "body": "A" * 150,  # 150 chars - exceeds limit
+                    "timestamp": "2024-01-15",
+                    "has_url": "true",
+                },
+                {
+                    "sender": "medium@example.com",
+                    "receiver": "recipient@example.com",
+                    "subject": "Medium Email",
+                    "body": "B" * 50,  # 50 chars - under limit
+                    "timestamp": "2024-01-16",
+                    "has_url": "false",
+                },
+            ]
+
+            fieldnames = [
+                "sender",
+                "receiver",
+                "subject",
+                "body",
+                "timestamp",
+                "has_url",
+            ]
+            self.create_test_csv(data, fieldnames, input_path)
+
+            # Process with max_body_length=100
+            processor = StreamingProcessor(max_body_length=100)
+            stats = processor.process(input_path, output_dir)
+
+            # Verify stats
+            assert stats.total_processed == 2  # Only short and medium emails processed
+            assert stats.skipped_stats.total_skipped == 1
+            assert stats.skipped_stats.skipped_body_too_long == 1
+
+            # Verify skipped_emails.csv was created
+            skipped_path = output_dir / "skipped_emails.csv"
+            assert skipped_path.exists()
+
+            with open(skipped_path, encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                skipped_rows = list(reader)
+
+            assert len(skipped_rows) == 1
+            assert skipped_rows[0]["sender"] == "long@example.com"
+            assert skipped_rows[0]["skip_reason"] == "body_too_long"
+
+    def test_email_at_exact_limit_not_skipped(self):
+        """Test that email with body length exactly at the limit is NOT skipped."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_path = Path(tmpdir) / "input.csv"
+            output_dir = Path(tmpdir) / "output"
+
+            data = [
+                {
+                    "sender": "exact@example.com",
+                    "receiver": "recipient@example.com",
+                    "subject": "Exact Limit",
+                    "body": "A" * 100,  # Exactly 100 chars
+                    "timestamp": "2024-01-15",
+                    "has_url": "false",
+                },
+            ]
+
+            fieldnames = [
+                "sender",
+                "receiver",
+                "subject",
+                "body",
+                "timestamp",
+                "has_url",
+            ]
+            self.create_test_csv(data, fieldnames, input_path)
+
+            # Process with max_body_length=100
+            processor = StreamingProcessor(max_body_length=100)
+            stats = processor.process(input_path, output_dir)
+
+            # Email should be processed (at limit, not over)
+            assert stats.total_processed == 1
+            assert stats.skipped_stats.total_skipped == 0
+
+    def test_no_max_body_length_processes_all(self):
+        """Test that without max_body_length, all emails are processed."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_path = Path(tmpdir) / "input.csv"
+            output_dir = Path(tmpdir) / "output"
+
+            data = [
+                {
+                    "sender": "huge@example.com",
+                    "receiver": "recipient@example.com",
+                    "subject": "Huge Email",
+                    "body": "X" * 10000,  # Very long body
+                    "timestamp": "2024-01-15",
+                    "has_url": "false",
+                },
+            ]
+
+            fieldnames = [
+                "sender",
+                "receiver",
+                "subject",
+                "body",
+                "timestamp",
+                "has_url",
+            ]
+            self.create_test_csv(data, fieldnames, input_path)
+
+            # Process without max_body_length
+            processor = StreamingProcessor(max_body_length=None)
+            stats = processor.process(input_path, output_dir)
+
+            # Email should be processed
+            assert stats.total_processed == 1
+            assert stats.skipped_stats.total_skipped == 0
+
+    def test_skipped_stats_in_report(self):
+        """Test that skipped statistics appear in processing stats."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_path = Path(tmpdir) / "input.csv"
+            output_dir = Path(tmpdir) / "output"
+
+            data = [
+                {
+                    "sender": "valid@example.com",
+                    "receiver": "recipient@example.com",
+                    "subject": "Valid",
+                    "body": "Short body",
+                    "timestamp": "2024-01-15",
+                    "has_url": "false",
+                },
+                {
+                    "sender": "long1@example.com",
+                    "receiver": "recipient@example.com",
+                    "subject": "Long 1",
+                    "body": "L" * 500,
+                    "timestamp": "2024-01-15",
+                    "has_url": "false",
+                },
+                {
+                    "sender": "long2@example.com",
+                    "receiver": "recipient@example.com",
+                    "subject": "Long 2",
+                    "body": "M" * 600,
+                    "timestamp": "2024-01-16",
+                    "has_url": "true",
+                },
+            ]
+
+            fieldnames = [
+                "sender",
+                "receiver",
+                "subject",
+                "body",
+                "timestamp",
+                "has_url",
+            ]
+            self.create_test_csv(data, fieldnames, input_path)
+
+            processor = StreamingProcessor(max_body_length=100)
+            stats = processor.process(input_path, output_dir)
+
+            # Convert to dict and check skipped section
+            stats_dict = stats.to_dict()
+            assert "skipped" in stats_dict
+            assert stats_dict["skipped"]["total_skipped"] == 2
+            assert stats_dict["skipped"]["skipped_body_too_long"] == 2

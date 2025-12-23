@@ -140,11 +140,11 @@ class DatasetAnalyzer:
         (2000, float("inf"), "2000+"),
     ]
 
-    def __init__(self, allow_large_fields: bool = False):
+    def __init__(self, allow_large_fields: bool = True):
         """Initialize analyzer.
 
         Args:
-            allow_large_fields: Allow CSV fields larger than default limit.
+            allow_large_fields: Allow CSV fields larger than default limit (default: True).
         """
         self.allow_large_fields = allow_large_fields
 

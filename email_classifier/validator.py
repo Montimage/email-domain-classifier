@@ -17,7 +17,7 @@ class ValidationResult:
     """Result of email validation."""
 
     is_valid: bool
-    errors: List[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -32,7 +32,7 @@ class ValidationStats:
     invalid_empty_subject: int = 0
     invalid_empty_body: int = 0
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         """Convert stats to dictionary."""
         return {
             "total_invalid": self.total_invalid,
@@ -42,6 +42,21 @@ class ValidationStats:
             "invalid_empty_receiver": self.invalid_empty_receiver,
             "invalid_empty_subject": self.invalid_empty_subject,
             "invalid_empty_body": self.invalid_empty_body,
+        }
+
+
+@dataclass
+class SkippedStats:
+    """Statistics for skipped emails due to filtering."""
+
+    total_skipped: int = 0
+    skipped_body_too_long: int = 0
+
+    def to_dict(self) -> dict:
+        """Convert stats to dictionary."""
+        return {
+            "total_skipped": self.total_skipped,
+            "skipped_body_too_long": self.skipped_body_too_long,
         }
 
 
@@ -65,7 +80,7 @@ class EmailValidator:
     # Pattern for "Display Name <email@domain.com>" format
     # Matches: John Doe <john@example.com> or "John Doe" <john@example.com>
     EMAIL_WITH_NAME_PATTERN = re.compile(
-        r'^[^<]*<([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>$', re.IGNORECASE
+        r"^[^<]*<([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>$", re.IGNORECASE
     )
 
     def validate_email_format(self, email: str) -> bool:
@@ -98,7 +113,7 @@ class EmailValidator:
 
         return False
 
-    def validate(self, email_dict: Dict) -> ValidationResult:
+    def validate(self, email_dict: dict) -> ValidationResult:
         """
         Validate an email record.
 
@@ -144,7 +159,7 @@ class InvalidEmailWriter:
     Creates invalid_emails.csv with original columns plus validation_errors.
     """
 
-    def __init__(self, output_dir: Path, fieldnames: List[str]):
+    def __init__(self, output_dir: Path, fieldnames: list[str]):
         """
         Initialize the invalid email writer.
 
@@ -167,7 +182,7 @@ class InvalidEmailWriter:
             self.writer = csv.DictWriter(self.file, fieldnames=self.fieldnames)
             self.writer.writeheader()
 
-    def write(self, email_dict: Dict, errors: List[str]) -> None:
+    def write(self, email_dict: dict, errors: list[str]) -> None:
         """
         Write an invalid email record to the CSV file.
 
@@ -178,7 +193,11 @@ class InvalidEmailWriter:
         self._ensure_writer()
 
         # Prepare row with original data plus errors
-        row = {k: email_dict.get(k, "") for k in self.fieldnames if k != "validation_errors"}
+        row = {
+            k: email_dict.get(k, "")
+            for k in self.fieldnames
+            if k != "validation_errors"
+        }
         row["validation_errors"] = "|".join(errors)
 
         self.writer.writerow(row)
@@ -209,6 +228,77 @@ class InvalidEmailWriter:
 
     def get_stats(self) -> ValidationStats:
         """Get validation statistics."""
+        return self.stats
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False
+
+
+class SkippedEmailWriter:
+    """
+    Writes skipped emails to a separate CSV file for review.
+
+    Creates skipped_emails.csv with original columns plus skip_reason.
+    """
+
+    def __init__(self, output_dir: Path, fieldnames: list[str]):
+        """
+        Initialize the skipped email writer.
+
+        Args:
+            output_dir: Directory to write skipped_emails.csv
+            fieldnames: List of column names from input CSV
+        """
+        self.output_dir = Path(output_dir)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.filepath = self.output_dir / "skipped_emails.csv"
+        self.fieldnames = list(fieldnames) + ["skip_reason"]
+        self.file = None
+        self.writer = None
+        self.stats = SkippedStats()
+
+    def _ensure_writer(self):
+        """Create CSV writer if not already created."""
+        if self.writer is None:
+            self.file = open(self.filepath, "w", newline="", encoding="utf-8")
+            self.writer = csv.DictWriter(self.file, fieldnames=self.fieldnames)
+            self.writer.writeheader()
+
+    def write(self, email_dict: dict, reason: str) -> None:
+        """
+        Write a skipped email record to the CSV file.
+
+        Args:
+            email_dict: Original email data
+            reason: Reason for skipping (e.g., "body_too_long")
+        """
+        self._ensure_writer()
+
+        # Prepare row with original data plus reason
+        row = {k: email_dict.get(k, "") for k in self.fieldnames if k != "skip_reason"}
+        row["skip_reason"] = reason
+
+        self.writer.writerow(row)
+        self.file.flush()
+
+        # Update statistics
+        self.stats.total_skipped += 1
+        if reason == "body_too_long":
+            self.stats.skipped_body_too_long += 1
+
+    def close(self) -> None:
+        """Close the CSV file."""
+        if self.file is not None:
+            self.file.close()
+            self.file = None
+            self.writer = None
+
+    def get_stats(self) -> SkippedStats:
+        """Get skipped email statistics."""
         return self.stats
 
     def __enter__(self):

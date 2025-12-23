@@ -147,12 +147,12 @@ Apache License 2.0 - see [LICENSE](LICENSE) file for details.
 
 ## 📞 Contact
 
-Built with ❤️ by [Montimage Security Research](https://www.montimage.com/)
+Built with ❤️ by [Montimage Security Research](https://www.montimage.eu/)
 
 - **GitHub**: [montimage/email-domain-classifier](https://github.com/montimage/email-domain-classifier)
 - **Issues**: [Issue Tracker](https://github.com/montimage/email-domain-classifier/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/montimage/email-domain-classifier/discussions)
-- **Email**: research@montimage.com
+- **Email**: developer@montimage.com
 
 ---
 

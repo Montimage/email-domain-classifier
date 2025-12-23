@@ -349,6 +349,20 @@ class TerminalUI:
             )
             content.append("  (See invalid_emails.csv)\n", style="dim")
 
+        # Skipped stats if there are any skipped emails
+        skipped = stats.get("skipped", {})
+        if skipped.get("total_skipped", 0) > 0:
+            content.append("\n🚫 Skipped Emails\n\n", style="bold cyan")
+            content.append("  Body too long:     ", style="dim")
+            content.append(
+                f"{skipped.get('breakdown', {}).get('body_too_long', 0):,}",
+                style="bold yellow",
+            )
+            content.append(
+                f" ({skipped.get('skipped_percentage', 0)}%)\n", style="yellow"
+            )
+            content.append("  (See skipped_emails.csv)\n", style="dim")
+
         content.append("\n⏱️  Performance\n\n", style="bold cyan")
 
         content.append("  Duration:          ", style="dim")

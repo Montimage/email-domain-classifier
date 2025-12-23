@@ -40,7 +40,7 @@ class ClassificationReporter:
 
     def generate_report(
         self, stats: ProcessingStats, output_dir: Path, input_file: str = None
-    ) -> Dict:
+    ) -> dict:
         """Generate full report from processing statistics."""
         report = {
             "meta": {
@@ -50,6 +50,7 @@ class ClassificationReporter:
             },
             "summary": self._generate_summary(stats),
             "validation": self._generate_validation_summary(stats),
+            "skipped": self._generate_skipped_summary(stats),
             "domain_breakdown": self._generate_domain_breakdown(stats),
             "label_distribution_analysis": self._generate_label_distribution_analysis(
                 stats
@@ -69,7 +70,7 @@ class ClassificationReporter:
 
         return report
 
-    def _generate_summary(self, stats: ProcessingStats) -> Dict:
+    def _generate_summary(self, stats: ProcessingStats) -> dict:
         """Generate summary statistics."""
         classification_rate = (
             stats.total_classified / stats.total_processed * 100
@@ -95,7 +96,7 @@ class ClassificationReporter:
             ),
         }
 
-    def _generate_validation_summary(self, stats: ProcessingStats) -> Dict:
+    def _generate_validation_summary(self, stats: ProcessingStats) -> dict:
         """Generate validation statistics summary."""
         validation = stats.validation_stats
         total_attempted = stats.total_processed + validation.total_invalid
@@ -117,7 +118,28 @@ class ClassificationReporter:
             },
         }
 
-    def _generate_domain_breakdown(self, stats: ProcessingStats) -> Dict:
+    def _generate_skipped_summary(self, stats: ProcessingStats) -> dict:
+        """Generate skipped email statistics summary."""
+        skipped = stats.skipped_stats
+        total_attempted = (
+            stats.total_processed
+            + stats.validation_stats.total_invalid
+            + skipped.total_skipped
+        )
+
+        return {
+            "total_skipped": skipped.total_skipped,
+            "skipped_percentage": (
+                round(skipped.total_skipped / total_attempted * 100, 2)
+                if total_attempted > 0
+                else 0
+            ),
+            "breakdown": {
+                "body_too_long": skipped.skipped_body_too_long,
+            },
+        }
+
+    def _generate_domain_breakdown(self, stats: ProcessingStats) -> dict:
         """Generate per-domain statistics."""
         total = stats.total_processed
         breakdown = {}
@@ -136,7 +158,7 @@ class ClassificationReporter:
 
         return breakdown
 
-    def _generate_timing_metrics(self, stats: ProcessingStats) -> Dict:
+    def _generate_timing_metrics(self, stats: ProcessingStats) -> dict:
         """Generate timing and performance metrics."""
         if stats.start_time and stats.end_time:
             duration = (stats.end_time - stats.start_time).total_seconds()
@@ -152,7 +174,7 @@ class ClassificationReporter:
             "emails_per_second": round(emails_per_second, 2),
         }
 
-    def _generate_quality_metrics(self, stats: ProcessingStats) -> Dict:
+    def _generate_quality_metrics(self, stats: ProcessingStats) -> dict:
         """Generate quality and confidence metrics."""
         # Calculate agreement rate (how often both methods agreed)
         agreed = stats.total_classified
@@ -187,7 +209,7 @@ class ClassificationReporter:
             ),
         }
 
-    def _generate_recommendations(self, stats: ProcessingStats) -> List[str]:
+    def _generate_recommendations(self, stats: ProcessingStats) -> list[str]:
         """Generate actionable recommendations based on results."""
         recommendations = []
 
@@ -242,7 +264,7 @@ class ClassificationReporter:
 
         return recommendations
 
-    def _generate_label_distribution_analysis(self, stats: ProcessingStats) -> Dict:
+    def _generate_label_distribution_analysis(self, stats: ProcessingStats) -> dict:
         """Generate label distribution analysis by domain.
 
         Shows what original label values from the input data map to each
@@ -272,7 +294,7 @@ class ClassificationReporter:
 
         return analysis
 
-    def _generate_url_distribution_analysis(self, stats: ProcessingStats) -> Dict:
+    def _generate_url_distribution_analysis(self, stats: ProcessingStats) -> dict:
         """Generate URL presence analysis by domain.
 
         Shows the distribution of emails with and without URLs for each
@@ -302,7 +324,7 @@ class ClassificationReporter:
 
         return analysis
 
-    def _generate_cross_tabulation_analysis(self, stats: ProcessingStats) -> Dict:
+    def _generate_cross_tabulation_analysis(self, stats: ProcessingStats) -> dict:
         """Generate cross-tabulation analysis of labels vs URL presence by domain.
 
         Creates a matrix showing for each domain: how many emails had each
@@ -350,12 +372,12 @@ class ClassificationReporter:
 
         return analysis
 
-    def save_json_report(self, report: Dict, output_path: Path):
+    def save_json_report(self, report: dict, output_path: Path):
         """Save report as JSON file."""
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(report, f, indent=2)
 
-    def save_text_report(self, report: Dict, output_path: Path):
+    def save_text_report(self, report: dict, output_path: Path):
         """Save report as formatted text with ASCII visualization."""
         lines = []
 
@@ -400,18 +422,48 @@ class ClassificationReporter:
             lines.append("  Validation Errors Breakdown:")
             breakdown = validation["breakdown"]
             if breakdown["invalid_sender_format"] > 0:
-                lines.append(f"    - Invalid sender format:   {breakdown['invalid_sender_format']:,}")
+                lines.append(
+                    f"    - Invalid sender format:   {breakdown['invalid_sender_format']:,}"
+                )
             if breakdown["invalid_receiver_format"] > 0:
-                lines.append(f"    - Invalid receiver format: {breakdown['invalid_receiver_format']:,}")
+                lines.append(
+                    f"    - Invalid receiver format: {breakdown['invalid_receiver_format']:,}"
+                )
             if breakdown["empty_sender"] > 0:
-                lines.append(f"    - Empty sender:            {breakdown['empty_sender']:,}")
+                lines.append(
+                    f"    - Empty sender:            {breakdown['empty_sender']:,}"
+                )
             if breakdown["empty_receiver"] > 0:
-                lines.append(f"    - Empty receiver:          {breakdown['empty_receiver']:,}")
+                lines.append(
+                    f"    - Empty receiver:          {breakdown['empty_receiver']:,}"
+                )
             if breakdown["empty_subject"] > 0:
-                lines.append(f"    - Empty subject:           {breakdown['empty_subject']:,}")
+                lines.append(
+                    f"    - Empty subject:           {breakdown['empty_subject']:,}"
+                )
             if breakdown["empty_body"] > 0:
-                lines.append(f"    - Empty body:              {breakdown['empty_body']:,}")
+                lines.append(
+                    f"    - Empty body:              {breakdown['empty_body']:,}"
+                )
             lines.append("  (See invalid_emails.csv for details)")
+            lines.append("")
+
+        # Skipped emails section
+        if report.get("skipped") and report["skipped"]["total_skipped"] > 0:
+            lines.append("─" * 80)
+            lines.append("  SKIPPED EMAILS")
+            lines.append("─" * 80)
+            skipped = report["skipped"]
+            lines.append(
+                f"  Total Skipped:           {skipped['total_skipped']:,} ({skipped['skipped_percentage']}%)"
+            )
+            lines.append("  Skip Reasons Breakdown:")
+            breakdown = skipped["breakdown"]
+            if breakdown["body_too_long"] > 0:
+                lines.append(
+                    f"    - Body too long:           {breakdown['body_too_long']:,}"
+                )
+            lines.append("  (See skipped_emails.csv for details)")
             lines.append("")
 
         # Domain breakdown with bar chart
@@ -573,7 +625,7 @@ class ClassificationReporter:
         with open(output_path, "w", encoding="utf-8") as f:
             f.write("\n".join(lines))
 
-    def format_terminal_summary(self, report: Dict) -> str:
+    def format_terminal_summary(self, report: dict) -> str:
         """Format a brief summary for terminal output."""
         summary = report["summary"]
         timing = report["timing"]

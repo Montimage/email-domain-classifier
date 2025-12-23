@@ -9,14 +9,21 @@ import csv
 import logging
 import os
 from collections import defaultdict
+from collections.abc import Callable, Generator
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Dict, Generator, List, Optional
+from typing import Dict, List, Optional
 
 from .classifier import EmailClassifier, EmailData
 from .domains import get_domain_names
-from .validator import EmailValidator, InvalidEmailWriter, ValidationStats
+from .validator import (
+    EmailValidator,
+    InvalidEmailWriter,
+    SkippedEmailWriter,
+    SkippedStats,
+    ValidationStats,
+)
 
 
 @dataclass
@@ -32,25 +39,27 @@ class ProcessingStats:
     total_processed: int = 0
     total_classified: int = 0
     total_unsure: int = 0
-    domain_counts: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    domain_counts: dict[str, int] = field(default_factory=lambda: defaultdict(int))
     errors: int = 0
     start_time: datetime = None
     end_time: datetime = None
-    label_distributions: Dict[str, Dict[str, int]] = field(
+    label_distributions: dict[str, dict[str, int]] = field(
         default_factory=lambda: defaultdict(lambda: defaultdict(int))
     )
-    url_distributions: Dict[str, Dict[bool, int]] = field(
+    url_distributions: dict[str, dict[bool, int]] = field(
         default_factory=lambda: defaultdict(lambda: defaultdict(int))
     )
-    cross_tabulation: Dict[str, Dict[str, Dict[bool, int]]] = field(
+    cross_tabulation: dict[str, dict[str, dict[bool, int]]] = field(
         default_factory=lambda: defaultdict(
             lambda: defaultdict(lambda: defaultdict(int))
         )
     )
     # Validation statistics
     validation_stats: ValidationStats = field(default_factory=ValidationStats)
+    # Skipped email statistics
+    skipped_stats: SkippedStats = field(default_factory=SkippedStats)
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         """Convert stats to dictionary."""
         return {
             "total_processed": self.total_processed,
@@ -76,6 +85,7 @@ class ProcessingStats:
                 for k, val in self.cross_tabulation.items()
             },
             "validation": self.validation_stats.to_dict(),
+            "skipped": self.skipped_stats.to_dict(),
         }
 
 
@@ -83,7 +93,15 @@ class OutputManager:
     """Manages output CSV files for each domain."""
 
     # Standard columns in required order
-    STANDARD_COLUMNS = ["sender", "receiver", "date", "subject", "body", "urls", "label"]
+    STANDARD_COLUMNS = [
+        "sender",
+        "receiver",
+        "date",
+        "subject",
+        "body",
+        "urls",
+        "label",
+    ]
 
     # Classification columns (always after standard)
     CLASSIFICATION_COLUMNS = ["classified_domain", "method1_domain", "method2_domain"]
@@ -91,7 +109,9 @@ class OutputManager:
     # Optional detail columns
     DETAIL_COLUMNS = ["method1_confidence", "method2_confidence", "agreement"]
 
-    def __init__(self, output_dir: Path, fieldnames: List[str], include_details: bool = False):
+    def __init__(
+        self, output_dir: Path, fieldnames: list[str], include_details: bool = False
+    ):
         self.output_dir = output_dir
         self.include_details = include_details
         self.files = {}
@@ -103,7 +123,9 @@ class OutputManager:
         # Ensure output directory exists
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-    def _build_fieldnames(self, input_fieldnames: List[str], include_details: bool) -> List[str]:
+    def _build_fieldnames(
+        self, input_fieldnames: list[str], include_details: bool
+    ) -> list[str]:
         """Build ordered fieldnames list with standard columns first."""
         fieldnames = self.STANDARD_COLUMNS.copy()
         fieldnames.extend(self.CLASSIFICATION_COLUMNS)
@@ -131,7 +153,7 @@ class OutputManager:
 
         return self.writers[domain]
 
-    def write_email(self, domain: str, email_data: Dict):
+    def write_email(self, domain: str, email_data: dict):
         """Write email to appropriate domain file."""
         writer = self._get_writer(domain)
         writer.writerow(email_data)
@@ -144,7 +166,7 @@ class OutputManager:
         self.files.clear()
         self.writers.clear()
 
-    def get_output_files(self) -> Dict[str, Path]:
+    def get_output_files(self) -> dict[str, Path]:
         """Return mapping of domains to their output file paths."""
         return {
             domain: self.output_dir / f"email_{domain}.csv"
@@ -187,18 +209,20 @@ class StreamingProcessor:
         classifier: EmailClassifier = None,
         chunk_size: int = 1000,
         logger: logging.Logger = None,
-        allow_large_fields: bool = False,
+        allow_large_fields: bool = True,
         strict_validation: bool = False,
+        max_body_length: int | None = None,
     ):
         self.classifier = classifier or EmailClassifier()
         self.chunk_size = chunk_size
         self.logger = logger or logging.getLogger(__name__)
         self.allow_large_fields = allow_large_fields
         self.strict_validation = strict_validation
+        self.max_body_length = max_body_length
         self.validator = EmailValidator()
         self.stats = ProcessingStats()
 
-    def _normalize_row(self, row: Dict) -> Dict:
+    def _normalize_row(self, row: dict) -> dict:
         """
         Apply column mappings and ensure standard structure.
 
@@ -219,7 +243,9 @@ class StreamingProcessor:
 
             # Special handling for has_url -> urls conversion
             if input_col == "has_url":
-                value = "true" if str(value).lower() in ("true", "1", "yes", "on") else ""
+                value = (
+                    "true" if str(value).lower() in ("true", "1", "yes", "on") else ""
+                )
 
             normalized[standard_col] = value
 
@@ -239,7 +265,7 @@ class StreamingProcessor:
             if self.allow_large_fields:
                 csv.field_size_limit(2**31 - 1)
 
-            with open(input_path, "r", encoding="utf-8", errors="replace") as f:
+            with open(input_path, encoding="utf-8", errors="replace") as f:
                 reader = csv.reader(f)
                 try:
                     # Skip header
@@ -259,20 +285,22 @@ class StreamingProcessor:
 
         return count
 
-    def _stream_emails(self, input_path: Path) -> Generator[Dict, None, None]:
+    def _stream_emails(self, input_path: Path) -> Generator[dict, None, None]:
         """Stream emails from CSV file one at a time."""
         try:
             # Configure CSV reader to handle large fields
             if self.allow_large_fields:
                 # Temporarily increase field size limit for this file
                 current_limit = csv.field_size_limit()
-                csv.field_size_limit(2**31 - 1)  # Set to a very large limit (about 2GB)
+                csv.field_size_limit(
+                    2**31 - 1
+                )  # Set to a very large limit (about 2GB)
                 self.logger.info(f"Field size limit set to: {current_limit}")
             else:
                 current_limit = None
                 self.logger.info(f"Field size limit used: default (131,072)")
 
-            with open(input_path, "r", encoding="utf-8", errors="replace") as f:
+            with open(input_path, encoding="utf-8", errors="replace") as f:
                 reader = csv.DictReader(f)
                 if reader.fieldnames:
                     missing = set(self.EXPECTED_COLUMNS) - set(reader.fieldnames)
@@ -285,8 +313,7 @@ class StreamingProcessor:
                                 f"Missing expected columns: {critical_missing}"
                             )
 
-                for row in reader:
-                    yield row
+                yield from reader
         except csv.Error as e:
             error_msg = str(e).lower()
             if (
@@ -309,7 +336,7 @@ class StreamingProcessor:
             else:
                 self.logger.error(f"CSV parsing error: {e}")
             raise
-        except IOError as e:
+        except OSError as e:
             self.logger.error(f"File I/O error: {e}")
             raise
         except Exception as e:
@@ -320,7 +347,7 @@ class StreamingProcessor:
         self,
         input_path: Path,
         output_dir: Path,
-        progress_callback: Optional[Callable[[int, int, str], None]] = None,
+        progress_callback: Callable[[int, int, str], None] | None = None,
         include_details: bool = False,
     ) -> ProcessingStats:
         """
@@ -358,7 +385,7 @@ class StreamingProcessor:
             if self.allow_large_fields:
                 csv.field_size_limit(2**31 - 1)
 
-            with open(input_path, "r", encoding="utf-8", errors="replace") as f:
+            with open(input_path, encoding="utf-8", errors="replace") as f:
                 reader = csv.DictReader(f)
                 if reader.fieldnames:
                     input_fieldnames = list(reader.fieldnames)
@@ -370,6 +397,11 @@ class StreamingProcessor:
 
         # Initialize invalid email writer
         invalid_writer = InvalidEmailWriter(output_dir, input_fieldnames)
+
+        # Initialize skipped email writer (only if max_body_length is set)
+        skipped_writer = None
+        if self.max_body_length is not None:
+            skipped_writer = SkippedEmailWriter(output_dir, input_fieldnames)
 
         try:
             for idx, email_dict in enumerate(self._stream_emails(input_path)):
@@ -407,6 +439,28 @@ class StreamingProcessor:
                         # Skip to next email
                         continue
 
+                    # Check body length filter (if max_body_length is set)
+                    if self.max_body_length is not None:
+                        body = str(email_dict.get("body", ""))
+                        body_length = len(body)
+                        if body_length > self.max_body_length:
+                            # Write to skipped emails file
+                            if skipped_writer is not None:
+                                skipped_writer.write(email_dict, "body_too_long")
+
+                            # Update skipped stats
+                            self.stats.skipped_stats.total_skipped += 1
+                            self.stats.skipped_stats.skipped_body_too_long += 1
+
+                            # Log the skip
+                            self.logger.debug(
+                                f"Skipped email {idx + 1}: body length {body_length} "
+                                f"exceeds limit {self.max_body_length}"
+                            )
+
+                            # Skip to next email
+                            continue
+
                     # Normalize row to standard column structure
                     normalized_row = self._normalize_row(email_dict)
 
@@ -414,8 +468,8 @@ class StreamingProcessor:
                     domain, details = self.classifier.classify_dict(normalized_row)
 
                     # Prepare output row with standard columns
+                    # Preserve original label from input (do not overwrite with domain)
                     output_row = normalized_row.copy()
-                    output_row["label"] = domain
                     output_row["classified_domain"] = domain
                     output_row["method1_domain"] = (
                         details["method1"]["domain"] or "none"
@@ -425,12 +479,12 @@ class StreamingProcessor:
                     )
 
                     if include_details:
-                        output_row["method1_confidence"] = (
-                            f"{details['method1']['confidence']:.4f}"
-                        )
-                        output_row["method2_confidence"] = (
-                            f"{details['method2']['confidence']:.4f}"
-                        )
+                        output_row[
+                            "method1_confidence"
+                        ] = f"{details['method1']['confidence']:.4f}"
+                        output_row[
+                            "method2_confidence"
+                        ] = f"{details['method2']['confidence']:.4f}"
                         output_row["agreement"] = details.get("agreement", False)
 
                     # Write to appropriate file
@@ -450,7 +504,9 @@ class StreamingProcessor:
                     self.stats.label_distributions[domain][original_label] += 1
 
                     # Parse has_url value (handle various formats)
-                    has_url_value = email_dict.get("has_url", email_dict.get("urls", "false"))
+                    has_url_value = email_dict.get(
+                        "has_url", email_dict.get("urls", "false")
+                    )
                     if isinstance(has_url_value, str):
                         has_url = has_url_value.lower() in ("true", "1", "yes", "on")
                     else:
@@ -484,10 +540,10 @@ class StreamingProcessor:
                     self.logger.error(f"Error processing email {idx + 1}: {e}")
 
                     # Still write to unsure if there's an error
+                    # Preserve original label from input (do not overwrite)
                     try:
                         normalized_row = self._normalize_row(email_dict)
                         output_row = normalized_row.copy()
-                        output_row["label"] = "unsure"
                         output_row["classified_domain"] = "unsure"
                         output_row["method1_domain"] = "error"
                         output_row["method2_domain"] = "error"
@@ -507,6 +563,8 @@ class StreamingProcessor:
         finally:
             output_manager.close_all()
             invalid_writer.close()
+            if skipped_writer is not None:
+                skipped_writer.close()
 
         self.stats.end_time = datetime.now()
 
@@ -516,12 +574,18 @@ class StreamingProcessor:
         self.logger.info(f"Total processed: {self.stats.total_processed}")
         self.logger.info(f"Total classified: {self.stats.total_classified}")
         self.logger.info(f"Total unsure: {self.stats.total_unsure}")
-        self.logger.info(f"Total invalid (skipped): {self.stats.validation_stats.total_invalid}")
+        self.logger.info(
+            f"Total invalid (skipped): {self.stats.validation_stats.total_invalid}"
+        )
+        if self.stats.skipped_stats.total_skipped > 0:
+            self.logger.info(
+                f"Total skipped (body too long): {self.stats.skipped_stats.skipped_body_too_long}"
+            )
         self.logger.info(f"Errors: {self.stats.errors}")
 
         return self.stats
 
-    def get_output_summary(self, output_dir: Path) -> Dict[str, int]:
+    def get_output_summary(self, output_dir: Path) -> dict[str, int]:
         """Get summary of output files and their row counts."""
         output_dir = Path(output_dir)
         summary = {}
@@ -536,7 +600,7 @@ class StreamingProcessor:
                 domain = csv_file.stem.replace("email_", "")
 
                 try:
-                    with open(csv_file, "r", encoding="utf-8") as f:
+                    with open(csv_file, encoding="utf-8") as f:
                         reader = csv.reader(f)
                         # Count rows (excluding header)
                         count = sum(1 for _ in reader) - 1

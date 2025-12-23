@@ -166,18 +166,23 @@ def cmd_classify(args: argparse.Namespace) -> int:
     logger.info(f"Chunk size: {args.chunk_size}")
     logger.info(f"Include details: {args.include_details}")
     logger.info(f"Strict validation: {args.strict_validation}")
+    if args.max_body_length:
+        logger.info(f"Max body length: {args.max_body_length}")
 
     # Display configuration
     if not args.quiet:
+        config_opts = {
+            "Chunk Size": args.chunk_size,
+            "Include Details": args.include_details,
+            "Strict Validation": args.strict_validation,
+            "Log File": str(log_file),
+        }
+        if args.max_body_length:
+            config_opts["Max Body Length"] = f"{args.max_body_length:,} chars"
         ui.print_config(
             str(input_path),
             str(output_dir),
-            {
-                "Chunk Size": args.chunk_size,
-                "Include Details": args.include_details,
-                "Strict Validation": args.strict_validation,
-                "Log File": str(log_file),
-            },
+            config_opts,
         )
 
     # Initialize components
@@ -188,6 +193,7 @@ def cmd_classify(args: argparse.Namespace) -> int:
         logger=logger,
         allow_large_fields=args.allow_large_fields,
         strict_validation=args.strict_validation,
+        max_body_length=args.max_body_length,
     )
 
     # Process emails with progress tracking
@@ -338,7 +344,7 @@ For command-specific help:
 Examples:
   email-cli info emails.csv
   email-cli info emails.csv --json
-  email-cli info large_dataset.csv --allow-large-fields
+  email-cli info dataset.csv --no-large-fields  # Restrict to small fields only
         """,
     )
 
@@ -360,9 +366,11 @@ Examples:
     )
 
     info_parser.add_argument(
-        "--allow-large-fields",
-        action="store_true",
-        help="Allow processing of CSV fields larger than default limit",
+        "--no-large-fields",
+        dest="allow_large_fields",
+        action="store_false",
+        default=True,
+        help="Disable processing of CSV fields larger than default limit (131KB)",
     )
 
     # =========================================================================
@@ -452,9 +460,11 @@ Output:
     )
 
     classify_parser.add_argument(
-        "--allow-large-fields",
-        action="store_true",
-        help="Allow processing of CSV fields larger than default limit",
+        "--no-large-fields",
+        dest="allow_large_fields",
+        action="store_false",
+        default=True,
+        help="Disable processing of CSV fields larger than default limit (131KB)",
     )
 
     # Validation options
@@ -462,6 +472,16 @@ Output:
         "--strict-validation",
         action="store_true",
         help="Fail processing if any invalid emails are found",
+    )
+
+    # Filtering options
+    classify_parser.add_argument(
+        "--max-body-length",
+        type=int,
+        default=None,
+        metavar="CHARS",
+        help="Skip emails with body length exceeding this limit (in characters). "
+        "Skipped emails are logged to skipped_emails.csv.",
     )
 
     # =========================================================================

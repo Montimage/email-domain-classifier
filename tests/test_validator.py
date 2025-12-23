@@ -11,6 +11,8 @@ import pytest
 from email_classifier.validator import (
     EmailValidator,
     InvalidEmailWriter,
+    SkippedEmailWriter,
+    SkippedStats,
     ValidationResult,
     ValidationStats,
 )
@@ -71,7 +73,9 @@ class TestEmailValidator:
             "   ",
         ]
         for email in invalid_emails:
-            assert not validator.validate_email_format(email), f"Should be invalid: {email}"
+            assert not validator.validate_email_format(
+                email
+            ), f"Should be invalid: {email}"
 
     def test_none_email_returns_false(self, validator):
         """Test that None email returns False (not valid)."""
@@ -247,7 +251,7 @@ class TestInvalidEmailWriter:
             assert csv_path.exists()
 
             # Verify content
-            with open(csv_path, "r", encoding="utf-8") as f:
+            with open(csv_path, encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 rows = list(reader)
 
@@ -275,11 +279,14 @@ class TestInvalidEmailWriter:
             writer.close()
 
             csv_path = output_dir / "invalid_emails.csv"
-            with open(csv_path, "r", encoding="utf-8") as f:
+            with open(csv_path, encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 rows = list(reader)
 
-            assert rows[0]["validation_errors"] == "invalid_sender_format|empty_receiver|empty_subject"
+            assert (
+                rows[0]["validation_errors"]
+                == "invalid_sender_format|empty_receiver|empty_subject"
+            )
 
     def test_stats_tracking(self):
         """Test that validation statistics are tracked."""
@@ -318,7 +325,12 @@ class TestInvalidEmailWriter:
 
             with InvalidEmailWriter(output_dir, fieldnames) as writer:
                 writer.write(
-                    {"sender": "bad", "receiver": "r@e.com", "subject": "S", "body": "B"},
+                    {
+                        "sender": "bad",
+                        "receiver": "r@e.com",
+                        "subject": "S",
+                        "body": "B",
+                    },
                     ["invalid_sender_format"],
                 )
 
@@ -354,3 +366,116 @@ class TestValidationStats:
         assert result["invalid_sender_format"] == 2
         assert result["invalid_empty_subject"] == 3
         assert result["invalid_empty_body"] == 0
+
+
+class TestSkippedEmailWriter:
+    """Tests for SkippedEmailWriter class."""
+
+    def test_write_skipped_email(self):
+        """Test writing skipped email to CSV file."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = Path(tmpdir)
+            fieldnames = ["sender", "receiver", "subject", "body"]
+
+            writer = SkippedEmailWriter(output_dir, fieldnames)
+
+            email_dict = {
+                "sender": "sender@example.com",
+                "receiver": "receiver@example.com",
+                "subject": "Test",
+                "body": "A" * 3000,  # Very long body
+            }
+
+            writer.write(email_dict, "body_too_long")
+            writer.close()
+
+            # Verify file was created
+            csv_path = output_dir / "skipped_emails.csv"
+            assert csv_path.exists()
+
+            # Verify content
+            with open(csv_path, encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                rows = list(reader)
+
+            assert len(rows) == 1
+            assert rows[0]["sender"] == "sender@example.com"
+            assert rows[0]["skip_reason"] == "body_too_long"
+
+    def test_stats_tracking(self):
+        """Test that skipped statistics are tracked."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = Path(tmpdir)
+            fieldnames = ["sender", "receiver", "subject", "body"]
+
+            writer = SkippedEmailWriter(output_dir, fieldnames)
+
+            # Write first skipped email
+            writer.write(
+                {
+                    "sender": "s@e.com",
+                    "receiver": "r@e.com",
+                    "subject": "S",
+                    "body": "B" * 5000,
+                },
+                "body_too_long",
+            )
+
+            # Write second skipped email
+            writer.write(
+                {
+                    "sender": "s2@e.com",
+                    "receiver": "r2@e.com",
+                    "subject": "S2",
+                    "body": "B" * 6000,
+                },
+                "body_too_long",
+            )
+
+            stats = writer.get_stats()
+            writer.close()
+
+            assert stats.total_skipped == 2
+            assert stats.skipped_body_too_long == 2
+
+    def test_context_manager(self):
+        """Test using SkippedEmailWriter as context manager."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = Path(tmpdir)
+            fieldnames = ["sender", "receiver", "subject", "body"]
+
+            with SkippedEmailWriter(output_dir, fieldnames) as writer:
+                writer.write(
+                    {
+                        "sender": "s@e.com",
+                        "receiver": "r@e.com",
+                        "subject": "S",
+                        "body": "B" * 5000,
+                    },
+                    "body_too_long",
+                )
+
+            # File should be closed automatically
+            csv_path = output_dir / "skipped_emails.csv"
+            assert csv_path.exists()
+
+
+class TestSkippedStats:
+    """Tests for SkippedStats class."""
+
+    def test_default_values(self):
+        """Test that SkippedStats initializes with zeros."""
+        stats = SkippedStats()
+        assert stats.total_skipped == 0
+        assert stats.skipped_body_too_long == 0
+
+    def test_to_dict(self):
+        """Test converting SkippedStats to dictionary."""
+        stats = SkippedStats(
+            total_skipped=5,
+            skipped_body_too_long=5,
+        )
+        result = stats.to_dict()
+
+        assert result["total_skipped"] == 5
+        assert result["skipped_body_too_long"] == 5
