@@ -47,22 +47,33 @@ flowchart TD
 
 ### Minimum Requirements
 
-| Resource | Minimum | Recommended |
-|-----------|----------|-------------|
-| **CPU** | 2 cores | 4+ cores |
-| **RAM** | 4GB | 8GB+ |
-| **Storage** | 10GB | 50GB+ SSD |
-| **OS** | Linux/macOS/Windows | Linux (Ubuntu 20.04+) |
-| **Python** | 3.10 | 3.11+ |
+| Resource | Minimum | Recommended | With LLM |
+|-----------|----------|-------------|----------|
+| **CPU** | 2 cores | 4+ cores | 4+ cores |
+| **RAM** | 4GB | 8GB+ | 16GB+ (Ollama) |
+| **Storage** | 10GB | 50GB+ SSD | 100GB+ SSD (for local models) |
+| **OS** | Linux/macOS/Windows | Linux (Ubuntu 20.04+) | Linux (Ubuntu 20.04+) |
+| **Python** | 3.10 | 3.11+ | 3.11+ |
+| **Network** | Optional | Optional | Required (cloud providers) |
 
 ### Performance Scaling
 
-| Dataset Size | Memory Required | Processing Time | Recommended Setup |
-|-------------|-----------------|------------------|------------------|
-| 10K emails | 100MB | 1-2 min | Basic setup |
-| 100K emails | 500MB | 10-15 min | 4GB RAM |
-| 1M emails | 2GB | 1-2 hours | 8GB RAM, SSD |
-| 10M emails | 10GB | 10+ hours | 16GB RAM, high-performance SSD |
+| Dataset Size | Memory Required | Processing Time | With LLM (Cloud) | With LLM (Ollama) |
+|-------------|-----------------|------------------|------------------|-------------------|
+| 10K emails | 100MB | 1-2 min | 5-10 min | 15-30 min |
+| 100K emails | 500MB | 10-15 min | 1-2 hours | 3-5 hours |
+| 1M emails | 2GB | 1-2 hours | 10-20 hours | 30-50 hours |
+| 10M emails | 10GB | 10+ hours | Not recommended | Not recommended |
+
+### LLM Provider Comparison
+
+| Provider | Latency | Cost | Privacy | Offline |
+|----------|---------|------|---------|---------|
+| **Ollama (Local)** | 500-2000ms | Free | Full | Yes |
+| **Google Gemini** | 100-500ms | Pay-per-use | Cloud | No |
+| **Mistral** | 150-600ms | Pay-per-use | EU Cloud | No |
+| **Groq** | 50-200ms | Pay-per-use | Cloud | No |
+| **OpenRouter** | Varies | Pay-per-use | Cloud | No |
 
 ## 🚀 Local Deployment
 
@@ -220,6 +231,107 @@ services:
       - "9090:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    restart: unless-stopped
+```
+
+### Docker Compose with LLM Support
+
+```yaml
+version: '3.8'
+
+services:
+  email-classifier:
+    build: .
+    container_name: email-classifier
+    environment:
+      - PYTHONPATH=/app
+      - LOG_LEVEL=INFO
+      # LLM Configuration
+      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
+      - LLM_MODEL=${LLM_MODEL:-llama3.2}
+      - LLM_TEMPERATURE=0.0
+      - LLM_TIMEOUT=30
+      - LLM_RETRY_COUNT=3
+      - KEYWORD_WEIGHT=0.35
+      - STRUCTURAL_WEIGHT=0.25
+      - LLM_WEIGHT=0.40
+      # Ollama connection (for local LLM)
+      - OLLAMA_BASE_URL=http://ollama:11434
+      # Cloud provider keys (use secrets in production)
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+    volumes:
+      - ./data/input:/app/input:ro
+      - ./data/output:/app/output
+      - ./logs:/app/logs
+      - ./.env:/app/.env:ro  # Mount .env file
+    command: >
+      email-cli
+      /app/input/emails.csv
+      -o /app/output
+      --use-llm
+      --verbose
+      --log-file /app/logs/classification.log
+    depends_on:
+      - ollama
+    restart: unless-stopped
+
+  # Ollama sidecar for local LLM inference
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    restart: unless-stopped
+    # Pull model on first run
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        /bin/ollama serve &
+        sleep 5
+        /bin/ollama pull llama3.2
+        wait
+
+  monitoring:
+    image: prom/prometheus:latest
+    container_name: email-classifier-monitoring
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    restart: unless-stopped
+
+volumes:
+  ollama_data:
+```
+
+### Docker Compose with Cloud LLM Provider
+
+```yaml
+version: '3.8'
+
+services:
+  email-classifier:
+    build: .
+    container_name: email-classifier
+    env_file:
+      - .env  # Contains LLM_PROVIDER, API keys, etc.
+    environment:
+      - PYTHONPATH=/app
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./data/input:/app/input:ro
+      - ./data/output:/app/output
+      - ./logs:/app/logs
+    command: >
+      email-cli
+      /app/input/emails.csv
+      -o /app/output
+      --use-llm
+      --verbose
     restart: unless-stopped
 ```
 
@@ -390,6 +502,79 @@ if __name__ == "__main__":
     monitor_performance()
 ```
 
+### LLM-Specific Monitoring
+
+When LLM classification is enabled, monitor these additional metrics:
+
+```yaml
+# prometheus-llm-alerts.yml
+groups:
+  - name: llm-classification
+    rules:
+      # LLM latency monitoring
+      - alert: HighLLMLatency
+        expr: llm_request_duration_seconds > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "LLM requests taking longer than 5 seconds"
+
+      # LLM error rate
+      - alert: HighLLMErrorRate
+        expr: rate(llm_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "LLM error rate above 10%"
+
+      # Ollama service health
+      - alert: OllamaServiceDown
+        expr: up{job="ollama"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Ollama service is down"
+
+      # Token usage (if tracked)
+      - alert: HighTokenUsage
+        expr: sum(rate(llm_tokens_used_total[1h])) > 100000
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "High token usage detected"
+```
+
+### LLM Logging Configuration
+
+```python
+# llm_logging.py - Configure detailed LLM logging
+import logging
+
+# Enable LLM debug logging
+logging.getLogger('email_classifier.llm').setLevel(logging.DEBUG)
+
+# Log LLM requests and responses
+logging.getLogger('email_classifier.llm.agent').setLevel(logging.DEBUG)
+
+# Log provider-specific details
+logging.getLogger('langchain').setLevel(logging.INFO)
+```
+
+```bash
+# Environment-based logging configuration
+export LOG_LEVEL=INFO
+export LLM_LOG_LEVEL=DEBUG  # Verbose LLM logging
+
+# Log to file with rotation
+email-cli input.csv -o output/ --use-llm \
+  --log-file /var/log/email-classifier/llm.log \
+  --log-level DEBUG
+```
+
 ## 🔄 Deployment Process
 
 ### Pre-Deployment Checklist
@@ -483,6 +668,116 @@ monitoring:
   health_check_interval: 30
 ```
 
+## 🤖 LLM Configuration
+
+### Enabling LLM Classification in Production
+
+LLM classification (Method 3) provides semantic understanding of email content. Configure it based on your requirements:
+
+### LLM Environment Variables
+
+```bash
+# Production LLM configuration
+# Add to /etc/email-classifier/llm.env or system environment
+
+# Provider selection
+LLM_PROVIDER=google              # google, mistral, ollama, groq, openrouter
+
+# Model configuration
+LLM_MODEL=gemini-2.0-flash       # Provider-specific model name
+LLM_TEMPERATURE=0.0              # Use 0.0 for deterministic classification
+LLM_MAX_TOKENS=1024
+LLM_TIMEOUT=30
+LLM_RETRY_COUNT=3                # Increase for production reliability
+
+# Classification method weights
+KEYWORD_WEIGHT=0.35
+STRUCTURAL_WEIGHT=0.25
+LLM_WEIGHT=0.40
+
+# Provider API keys (use secrets management in production)
+GOOGLE_API_KEY=your-api-key      # Google Gemini
+MISTRAL_API_KEY=your-api-key     # Mistral AI
+GROQ_API_KEY=your-api-key        # Groq
+OPENROUTER_API_KEY=your-api-key  # OpenRouter
+
+# Ollama configuration (for local deployment)
+OLLAMA_BASE_URL=http://localhost:11434
+```
+
+### Security Best Practices for API Keys
+
+```bash
+# Option 1: Use environment file with restricted permissions
+sudo touch /etc/email-classifier/llm.env
+sudo chmod 600 /etc/email-classifier/llm.env
+sudo chown email-classifier:email-classifier /etc/email-classifier/llm.env
+
+# Add API keys to the file
+echo "GOOGLE_API_KEY=your-secret-key" | sudo tee -a /etc/email-classifier/llm.env
+
+# Option 2: Use systemd credentials (recommended)
+sudo mkdir -p /etc/email-classifier/credentials
+sudo systemd-creds encrypt --name=google-api-key - /etc/email-classifier/credentials/google-api-key
+
+# Option 3: Use cloud secrets manager
+# AWS Secrets Manager, GCP Secret Manager, Azure Key Vault
+```
+
+### Ollama Local Deployment
+
+For air-gapped or privacy-sensitive environments:
+
+```bash
+# Install Ollama
+curl -fsSL https://ollama.ai/install.sh | sh
+
+# Create Ollama service
+sudo tee /etc/systemd/system/ollama.service > /dev/null << 'EOF'
+[Unit]
+Description=Ollama LLM Service
+After=network.target
+
+[Service]
+Type=simple
+User=ollama
+ExecStart=/usr/local/bin/ollama serve
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Create user and start service
+sudo useradd -r -s /bin/false ollama
+sudo systemctl daemon-reload
+sudo systemctl enable ollama
+sudo systemctl start ollama
+
+# Pull model for classification
+ollama pull llama3.2
+
+# Configure email classifier to use Ollama
+echo "LLM_PROVIDER=ollama" >> /etc/email-classifier/llm.env
+echo "LLM_MODEL=llama3.2" >> /etc/email-classifier/llm.env
+echo "OLLAMA_BASE_URL=http://localhost:11434" >> /etc/email-classifier/llm.env
+```
+
+### Running with LLM Enabled
+
+```bash
+# Basic usage with LLM
+email-cli input.csv -o output/ --use-llm
+
+# With explicit environment file
+source /etc/email-classifier/llm.env && email-cli input.csv -o output/ --use-llm
+
+# Systemd service with LLM
+# Add EnvironmentFile to service configuration
+# EnvironmentFile=/etc/email-classifier/llm.env
+```
+
 ## 🚨 Troubleshooting
 
 ### Common Deployment Issues
@@ -531,6 +826,81 @@ mount -t ext4 /dev/sdb1 /var/lib/email-classifier
 
 # Enable memory optimization
 echo 'vm.swappiness=10' >> /etc/sysctl.conf
+```
+
+### LLM Deployment Issues
+
+#### Provider Connection Issues
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `Connection refused` (Ollama) | Ollama not running | `sudo systemctl start ollama` |
+| `401 Unauthorized` | Invalid API key | Verify API key in `.env` or environment |
+| `429 Rate Limited` | Too many requests | Reduce batch size, add delays |
+| `Timeout` | Slow network/model | Increase `LLM_TIMEOUT` value |
+
+#### Ollama-Specific Issues
+
+```bash
+# Check Ollama service status
+sudo systemctl status ollama
+curl http://localhost:11434/api/tags
+
+# Model not found
+ollama list
+ollama pull llama3.2
+
+# Ollama out of memory
+# Reduce model size or add swap
+sudo fallocate -l 8G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+
+# Check Ollama logs
+journalctl -u ollama -f
+```
+
+#### Cloud Provider Issues
+
+```bash
+# Test API connectivity
+# Google
+curl -H "Authorization: Bearer $GOOGLE_API_KEY" \
+  https://generativelanguage.googleapis.com/v1/models
+
+# Mistral
+curl -H "Authorization: Bearer $MISTRAL_API_KEY" \
+  https://api.mistral.ai/v1/models
+
+# Verify environment variables are set
+env | grep -E "(GOOGLE|MISTRAL|GROQ|OPENROUTER)_API_KEY"
+```
+
+#### Rate Limiting and Quotas
+
+```bash
+# Reduce classification rate for rate-limited APIs
+export LLM_TIMEOUT=60          # Longer timeout
+export LLM_RETRY_COUNT=5       # More retries
+export BATCH_DELAY_MS=1000     # Add delay between batches
+
+# For large datasets, consider:
+# 1. Using Ollama (no rate limits)
+# 2. Splitting into smaller batches
+# 3. Using multiple API keys (if provider allows)
+```
+
+#### LLM Fallback Behavior
+
+When LLM fails, the classifier falls back to dual-method classification:
+
+```bash
+# Check if fallback is occurring
+grep "LLM classification failed" /var/log/email-classifier/classification.log
+
+# Force dual-method only (disable LLM)
+email-cli input.csv -o output/  # Without --use-llm flag
 ```
 
 ## 📞 Support and Maintenance

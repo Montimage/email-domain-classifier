@@ -77,6 +77,119 @@ mypy --version
 
 **🎉 Development environment ready!** You can now start contributing.
 
+## 🤖 LLM Classification Development
+
+The Email Domain Classifier supports an optional LLM-based classification method (Method 3) that provides semantic understanding of email content. This section covers setting up LLM support for development.
+
+### LLM Provider Options
+
+| Provider | Type | API Key Required | Best For |
+|----------|------|------------------|----------|
+| **Ollama** | Local | No | Development, privacy-sensitive, offline |
+| **Google (Gemini)** | Cloud | Yes | High accuracy, fast responses |
+| **Mistral** | Cloud | Yes | European hosting, good performance |
+| **Groq** | Cloud | Yes | Very fast inference |
+| **OpenRouter** | Cloud | Yes | Access to multiple models |
+
+### Setting Up LLM Development
+
+#### Step 1: Install LLM Dependencies
+
+```bash
+# Install base LLM support
+pip install -e ".[llm]"
+
+# Or install specific provider support
+pip install -e ".[llm-google]"    # Google Gemini
+pip install -e ".[llm-mistral]"   # Mistral AI
+pip install -e ".[llm-ollama]"    # Ollama (local)
+pip install -e ".[llm-groq]"      # Groq
+pip install -e ".[llm-openrouter]" # OpenRouter
+
+# Install all LLM providers
+pip install -e ".[llm-all]"
+```
+
+#### Step 2: Configure Environment
+
+```bash
+# Copy the example configuration
+cp .env.example .env
+
+# Edit .env with your settings
+# See .env.example for all available options
+```
+
+#### Step 3: Provider-Specific Setup
+
+**Ollama (Recommended for Development)**
+```bash
+# Install Ollama - https://ollama.ai/download
+# macOS
+brew install ollama
+
+# Linux
+curl -fsSL https://ollama.ai/install.sh | sh
+
+# Start Ollama server
+ollama serve
+
+# Pull a model (in another terminal)
+ollama pull llama3.2
+
+# Configure .env
+# LLM_PROVIDER=ollama
+# LLM_MODEL=llama3.2
+```
+
+**Cloud Providers**
+```bash
+# Google Gemini - Get API key from https://makersuite.google.com/app/apikey
+# GOOGLE_API_KEY=your-api-key-here
+
+# Mistral - Get API key from https://console.mistral.ai/api-keys/
+# MISTRAL_API_KEY=your-api-key-here
+
+# Groq - Get API key from https://console.groq.com/keys
+# GROQ_API_KEY=your-api-key-here
+
+# OpenRouter - Get API key from https://openrouter.ai/keys
+# OPENROUTER_API_KEY=your-api-key-here
+```
+
+#### Step 4: Verify LLM Setup
+
+```bash
+# Test LLM classification with a sample file
+email-cli sample_emails.csv -o output/ --use-llm
+
+# Run LLM-specific tests
+pytest tests/test_llm.py -v
+```
+
+### LLM Configuration Reference
+
+Key settings in `.env`:
+
+```bash
+# Provider selection
+LLM_PROVIDER=ollama          # google, mistral, ollama, groq, openrouter
+
+# Model (leave empty for provider default)
+LLM_MODEL=llama3.2
+
+# Generation settings
+LLM_TEMPERATURE=0.0          # 0.0 for deterministic classification
+LLM_MAX_TOKENS=1024
+LLM_TIMEOUT=30               # Seconds
+LLM_RETRY_COUNT=2
+
+# Method weights (must sum to 1.0, auto-normalized if not)
+KEYWORD_WEIGHT=0.35          # Method 1: Keyword Taxonomy
+STRUCTURAL_WEIGHT=0.25       # Method 2: Structural Template
+LLM_WEIGHT=0.40              # Method 3: LLM Classification
+```
+
 ## 🏗️ Detailed Development Setup
 
 ### Step 1: System Preparation
@@ -311,6 +424,11 @@ make all        # Run everything
 # Package building
 python -m build
 twine check dist/*
+
+# LLM Classification
+email-cli input.csv -o output/ --use-llm    # Run with LLM enabled
+pytest tests/test_llm.py -v                  # Run LLM tests
+python -c "from email_classifier.llm import LLMConfig; print(LLMConfig())"  # Verify config
 ```
 
 ## 📋 Development Workflow
@@ -431,6 +549,41 @@ pytest -m "not slow"        # Skip slow tests
 - Memory usage validation
 - Benchmark comparisons
 - Stress testing
+
+#### LLM Classification Tests
+
+LLM tests are organized into two categories:
+
+**Unit Tests (Mocked)**
+```bash
+# Run LLM unit tests with mocked responses
+pytest tests/test_llm.py -v
+
+# These tests use mocked LLM responses for:
+# - Fast execution (no API calls)
+# - Consistent, reproducible results
+# - CI/CD pipeline compatibility
+```
+
+**Integration Tests (Live Provider)**
+```bash
+# Test with Ollama (no API key required)
+LLM_PROVIDER=ollama pytest tests/test_llm.py -v -m integration
+
+# Test with specific cloud provider
+LLM_PROVIDER=google pytest tests/test_llm.py -v -m integration
+
+# Note: Integration tests require:
+# - Ollama running locally, OR
+# - Valid API key in .env for cloud providers
+```
+
+**Testing Weight Configurations**
+```bash
+# Test different weight distributions
+pytest tests/test_llm.py::test_weight_normalization -v
+pytest tests/test_llm.py::test_three_method_classification -v
+```
 
 ### Writing Tests
 
@@ -781,6 +934,92 @@ def safe_text_extraction(text):
     """Extract text safely, preventing XSS."""
     return html.escape(text) if text else ""
 ```
+
+## 🔍 LLM Debugging
+
+### Common LLM Issues and Solutions
+
+#### Configuration Issues
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `LLM provider not configured` | Missing `.env` file | Copy `.env.example` to `.env` |
+| `API key not found` | Missing provider API key | Add API key to `.env` for your provider |
+| `Invalid provider` | Typo in `LLM_PROVIDER` | Use: `google`, `mistral`, `ollama`, `groq`, `openrouter` |
+
+#### Provider-Specific Debugging
+
+**Ollama Issues**
+```bash
+# Check if Ollama is running
+curl http://localhost:11434/api/tags
+
+# Check if model is available
+ollama list
+
+# Pull model if missing
+ollama pull llama3.2
+
+# Check Ollama logs
+ollama logs
+```
+
+**Cloud Provider Issues**
+```bash
+# Verify API key is set
+python -c "import os; print('Key set:', bool(os.getenv('GOOGLE_API_KEY')))"
+
+# Test provider connection
+python -c "
+from email_classifier.llm import create_llm_provider
+llm = create_llm_provider()
+print('Provider ready:', llm is not None)
+"
+```
+
+#### Debugging LLM Classification
+
+```python
+# Enable verbose logging for LLM calls
+import logging
+logging.getLogger('email_classifier.llm').setLevel(logging.DEBUG)
+
+# Test single email classification with LLM
+from email_classifier import EmailClassifier
+from email_classifier.llm import LLMConfig
+
+config = LLMConfig()
+classifier = EmailClassifier(llm_config=config)
+
+result = classifier.classify_dict({
+    "sender": "support@bank.com",
+    "subject": "Account Statement",
+    "body": "Your monthly statement is ready.",
+    "has_url": True
+})
+
+print(f"Domain: {result[0]}")
+print(f"Confidence: {result[1]}")
+print(f"Details: {result[2] if len(result) > 2 else 'N/A'}")
+```
+
+#### Performance Issues
+
+```bash
+# Profile LLM classification time
+time email-cli sample.csv -o output/ --use-llm
+
+# Check token usage (if supported by provider)
+# Tokens are logged at DEBUG level
+LOG_LEVEL=DEBUG email-cli sample.csv -o output/ --use-llm
+```
+
+### LLM Error Recovery
+
+The LLM classifier includes automatic retry logic:
+- Default: 2 retries on failure
+- Configurable via `LLM_RETRY_COUNT` in `.env`
+- Graceful degradation: Falls back to dual-method classification if LLM fails
 
 ---
 
