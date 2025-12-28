@@ -2,6 +2,28 @@
 
 This guide will help you install the Email Domain Classifier on your system.
 
+## AI-Agent Automated Setup
+
+If you're using an AI coding assistant (Claude Code, Cursor, etc.), you can request automated setup. The AI-Agent will:
+
+1. Detect and validate system prerequisites (Python 3.10+, Git, pip)
+2. Create and activate a virtual environment
+3. Install the package and dependencies
+4. Configure LLM provider (Ollama with llama3.1:8b by default)
+5. Generate the `.env` configuration file
+6. Present a summary for you to verify
+
+**Default configuration:**
+- Setup type: Basic usage
+- LLM: Enabled with Ollama (local, no API key needed)
+- Model: llama3.1:8b
+
+Simply ask: *"Set up this project from scratch"* or *"Install and configure email-classifier"*
+
+See [openspec/specs/automated-setup/spec.md](../../openspec/specs/automated-setup/spec.md) for the full AI-Agent setup specification.
+
+---
+
 ## Prerequisites
 
 - **Python 3.10 or higher** - Check with `python --version`
