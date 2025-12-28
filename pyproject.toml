@@ -33,9 +33,38 @@ classifiers = [
 requires-python = ">=3.10"
 dependencies = [
     "rich>=13.0.0",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.4.0",
 ]
 
 [project.optional-dependencies]
+llm = [
+    "langchain>=0.3.0",
+    "langgraph>=0.2.0",
+]
+google = [
+    "email-domain-classifier[llm]",
+    "langchain-google-genai>=2.0.0",
+]
+mistral = [
+    "email-domain-classifier[llm]",
+    "langchain-mistralai>=0.2.0",
+]
+ollama = [
+    "email-domain-classifier[llm]",
+    "langchain-ollama>=0.2.0",
+]
+groq = [
+    "email-domain-classifier[llm]",
+    "langchain-groq>=0.2.0",
+]
+openrouter = [
+    "email-domain-classifier[llm]",
+    "langchain-openai>=0.2.0",
+]
+all-llm = [
+    "email-domain-classifier[google,mistral,ollama,groq,openrouter]",
+]
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",

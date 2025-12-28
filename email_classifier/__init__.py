@@ -50,6 +50,30 @@ from .reporter import ClassificationReporter, ReportConfig
 # UI components
 from .ui import RICH_AVAILABLE, SimpleUI, TerminalUI, get_ui
 
+# LLM module imports (optional - only available if LLM dependencies installed)
+try:
+    from .llm import (
+        DomainClassification,
+        LLMClassificationResult,
+        LLMClassifier,
+        LLMConfig,
+    )
+
+    _LLM_AVAILABLE = True
+except ImportError:
+    _LLM_AVAILABLE = False
+    # Define placeholders for type checking
+    LLMClassifier = None  # type: ignore
+    LLMConfig = None  # type: ignore
+    LLMClassificationResult = None  # type: ignore
+    DomainClassification = None  # type: ignore
+
+
+def llm_available() -> bool:
+    """Check if LLM classification is available."""
+    return _LLM_AVAILABLE
+
+
 # Public API
 __all__ = [
     # Version info
@@ -62,6 +86,12 @@ __all__ = [
     "ClassificationResult",
     "KeywordTaxonomyClassifier",
     "StructuralTemplateClassifier",
+    # LLM classes (optional)
+    "LLMClassifier",
+    "LLMConfig",
+    "LLMClassificationResult",
+    "DomainClassification",
+    "llm_available",
     # Processing and Analysis
     "StreamingProcessor",
     "ProcessingStats",

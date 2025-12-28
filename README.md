@@ -6,7 +6,7 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/email-domain-classifier.svg)](https://pypi.org/project/email-domain-classifier/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-A Python library for classifying emails by domain using dual-method validation. Designed for processing large datasets efficiently with streaming processing.
+A Python library for classifying emails by domain using dual-method validation with optional LLM-based semantic classification. Designed for processing large datasets efficiently with streaming processing.
 
 ## Screenshots
 
@@ -43,6 +43,9 @@ email-cli info sample_emails.csv
 
 # Classify emails
 email-cli sample_emails.csv -o output/
+
+# Classify with LLM (requires additional setup - see LLM Classification section)
+email-cli sample_emails.csv -o output/ --use-llm
 ```
 
 ## Supported Domains
@@ -68,6 +71,7 @@ email-cli sample_emails.csv -o output/
 | `email_classifier/classifier.py` | Core classification logic |
 | `email_classifier/cli.py` | Command-line interface |
 | `email_classifier/domains.py` | Domain definitions and profiles |
+| `email_classifier/llm/` | LLM-based classification (optional) |
 | `email_classifier/processor.py` | CSV streaming processor |
 | `email_classifier/reporter.py` | Report generation |
 | `email_classifier/ui.py` | Terminal UI components |
@@ -103,6 +107,85 @@ email-cli raw-data/CEAS_08.csv -o classified-data/my_output/
 ```
 
 > **Note**: Large CSV files are stored with Git LFS. Run `git lfs pull` after cloning to download them.
+
+## LLM Classification (Optional)
+
+The classifier supports an optional LLM-based Method 3 that uses semantic analysis for improved classification accuracy. This method complements the existing keyword taxonomy and structural template methods.
+
+### Installation
+
+Install with LLM support for your preferred provider:
+
+```bash
+# For Ollama (local, free, no API key required)
+pip install -e ".[ollama]"
+
+# For Google Gemini
+pip install -e ".[google]"
+
+# For Mistral AI
+pip install -e ".[mistral]"
+
+# For Groq (fast inference)
+pip install -e ".[groq]"
+
+# For OpenRouter (access to multiple models)
+pip install -e ".[openrouter]"
+
+# Install all providers
+pip install -e ".[all-llm]"
+```
+
+### Configuration
+
+1. Copy the example configuration:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Edit `.env` with your settings:
+   ```bash
+   # For Ollama (local)
+   LLM_PROVIDER=ollama
+   LLM_MODEL=llama3.2
+
+   # For Google Gemini
+   LLM_PROVIDER=google
+   GOOGLE_API_KEY=your-api-key
+
+   # For other providers, set the appropriate API key
+   ```
+
+### Usage
+
+```bash
+# Enable LLM classification
+email-cli sample_emails.csv -o output/ --use-llm
+```
+
+### Supported Providers
+
+| Provider | Package | Default Model | API Key Required |
+|----------|---------|---------------|------------------|
+| Ollama | `langchain-ollama` | `llama3.2` | No (local) |
+| Google | `langchain-google-genai` | `gemini-2.0-flash` | Yes |
+| Mistral | `langchain-mistralai` | `mistral-large-latest` | Yes |
+| Groq | `langchain-groq` | `llama-3.3-70b-versatile` | Yes |
+| OpenRouter | `langchain-openai` | (specify) | Yes |
+
+### Method Weights
+
+When LLM is enabled, the classification weights are:
+- **Method 1** (Keyword Taxonomy): 35%
+- **Method 2** (Structural Template): 25%
+- **Method 3** (LLM): 40%
+
+Weights can be customized in the `.env` file:
+```bash
+LLM_WEIGHT=0.40
+KEYWORD_WEIGHT=0.35
+STRUCTURAL_WEIGHT=0.25
+```
 
 ## Documentation
 

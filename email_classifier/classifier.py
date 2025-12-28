@@ -1,15 +1,22 @@
 """
-Email classifier implementing two classification methods:
+Email classifier implementing multiple classification methods:
 - Method 1: Keyword Taxonomy Matching
 - Method 2: Structural Template Matching
+- Method 3: LLM-based Classification (optional)
 """
 
+import logging
 import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 from .domains import DOMAINS, DomainProfile, get_domain_names
+
+if TYPE_CHECKING:
+    from .llm import LLMClassifier, LLMConfig
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -492,27 +499,109 @@ class StructuralTemplateClassifier:
 
 class EmailClassifier:
     """
-    Main classifier combining both methods.
+    Main classifier combining multiple methods.
 
     Classification logic:
     - Run Method 1 (Keyword Taxonomy)
     - Run Method 2 (Structural Template)
+    - Run Method 3 (LLM) if enabled
     - Calculate weighted combined score
     - Assign domain with highest score if above threshold
     """
 
-    WEIGHT_METHOD_1 = 0.6  # Keywords
-    WEIGHT_METHOD_2 = 0.4  # Structure
+    # Default weights (without LLM)
+    DEFAULT_WEIGHT_METHOD_1 = 0.6  # Keywords
+    DEFAULT_WEIGHT_METHOD_2 = 0.4  # Structure
+
+    # Weights with LLM enabled
+    LLM_WEIGHT_METHOD_1 = 0.35  # Keywords
+    LLM_WEIGHT_METHOD_2 = 0.25  # Structure
+    LLM_WEIGHT_METHOD_3 = 0.40  # LLM
+
     GLOBAL_THRESHOLD = 0.15
 
-    def __init__(self, domains: dict[str, DomainProfile] | None = None) -> None:
+    def __init__(
+        self,
+        domains: dict[str, DomainProfile] | None = None,
+        llm_config: Optional["LLMConfig"] = None,
+        use_llm: bool = False,
+    ) -> None:
+        """Initialize the classifier.
+
+        Args:
+            domains: Optional custom domain profiles. Uses defaults if None.
+            llm_config: Configuration for LLM classifier. If provided, enables LLM.
+            use_llm: Enable LLM classification. Requires llm_config or will
+                    load from environment.
+        """
         self.domains = domains or DOMAINS
         self.method1 = KeywordTaxonomyClassifier(self.domains)
         self.method2 = StructuralTemplateClassifier(self.domains)
 
+        # LLM classifier (optional)
+        self.method3: Optional["LLMClassifier"] = None
+        self._llm_config: Optional["LLMConfig"] = llm_config
+
+        # Set weights based on LLM availability
+        if use_llm or llm_config is not None:
+            self._init_llm_classifier(llm_config)
+
+        self._update_weights()
+
+    def _init_llm_classifier(self, config: Optional["LLMConfig"] = None) -> None:
+        """Initialize the LLM classifier.
+
+        Args:
+            config: LLM configuration. If None, loads from environment.
+        """
+        try:
+            from .llm import LLMClassifier, LLMConfig
+
+            if config is None:
+                config = LLMConfig.from_env()
+
+            self._llm_config = config
+            self.method3 = LLMClassifier(config)
+            logger.info(
+                f"LLM classifier initialized with {config.provider.value}/{config.model}"
+            )
+        except ImportError as e:
+            logger.warning(f"LLM dependencies not installed: {e}")
+            self.method3 = None
+        except Exception as e:
+            logger.warning(f"Failed to initialize LLM classifier: {e}")
+            self.method3 = None
+
+    def _update_weights(self) -> None:
+        """Update method weights based on LLM availability."""
+        if self.method3 is not None and self._llm_config is not None:
+            # Use configurable weights from LLM config
+            self.weight_method_1 = self._llm_config.keyword_weight
+            self.weight_method_2 = self._llm_config.structural_weight
+            self.weight_method_3 = self._llm_config.llm_weight
+        else:
+            # Default dual-method weights
+            self.weight_method_1 = self.DEFAULT_WEIGHT_METHOD_1
+            self.weight_method_2 = self.DEFAULT_WEIGHT_METHOD_2
+            self.weight_method_3 = 0.0
+
+    @property
+    def llm_enabled(self) -> bool:
+        """Check if LLM classification is enabled."""
+        return self.method3 is not None
+
     def classify(self, email: EmailData) -> tuple[str, dict[str, Any]]:
         """
-        Classify email using dual-method validation with weighted scoring.
+        Classify email using multi-method validation with weighted scoring.
+
+        When LLM is enabled, combines three methods:
+        - Method 1: Keyword Taxonomy (default 35%)
+        - Method 2: Structural Template (default 25%)
+        - Method 3: LLM Agent (default 40%)
+
+        When LLM is disabled, uses dual-method classification:
+        - Method 1: Keyword Taxonomy (60%)
+        - Method 2: Structural Template (40%)
 
         Returns:
             Tuple of (domain_name or 'unsure', classification_details)
@@ -521,7 +610,7 @@ class EmailClassifier:
         result2 = self.method2.classify(email)
 
         # Initialize details
-        details = {
+        details: dict[str, Any] = {
             "method1": {
                 "domain": result1.domain,
                 "confidence": result1.confidence,
@@ -533,22 +622,50 @@ class EmailClassifier:
                 "scores": result2.scores,
             },
             "method_weights": {
-                "method1": self.WEIGHT_METHOD_1,
-                "method2": self.WEIGHT_METHOD_2,
+                "method1": self.weight_method_1,
+                "method2": self.weight_method_2,
             },
+            "llm_enabled": self.llm_enabled,
         }
 
+        # Run LLM classification if enabled
+        result3: Optional[ClassificationResult] = None
+        if self.method3 is not None:
+            try:
+                result3 = self.method3.classify(email)
+                details["method3"] = {
+                    "domain": result3.domain,
+                    "confidence": result3.confidence,
+                    "scores": result3.scores,
+                    "details": result3.details,
+                }
+                details["method_weights"]["method3"] = self.weight_method_3
+            except Exception as e:
+                logger.warning(f"LLM classification failed, falling back: {e}")
+                details["method3"] = {
+                    "error": str(e),
+                    "fallback": True,
+                }
+
         # Calculate combined scores
-        combined_scores = {}
+        combined_scores: dict[str, float] = {}
         all_domains = set(result1.scores.keys()) | set(result2.scores.keys())
+        if result3 is not None:
+            all_domains |= set(result3.scores.keys())
 
         for domain in all_domains:
             score1 = result1.scores.get(domain, 0.0)
             score2 = result2.scores.get(domain, 0.0)
 
-            combined_score = (score1 * self.WEIGHT_METHOD_1) + (
-                score2 * self.WEIGHT_METHOD_2
+            combined_score = (score1 * self.weight_method_1) + (
+                score2 * self.weight_method_2
             )
+
+            # Add LLM score if available
+            if result3 is not None:
+                score3 = result3.scores.get(domain, 0.0)
+                combined_score += score3 * self.weight_method_3
+
             combined_scores[domain] = combined_score
 
         details["combined_scores"] = combined_scores

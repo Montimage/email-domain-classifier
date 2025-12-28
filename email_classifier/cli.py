@@ -2,11 +2,13 @@
 """Email Domain Classifier CLI.
 
 A command-line tool for classifying emails by domain using
-dual-method validation (keyword taxonomy + structural templates).
+dual-method validation (keyword taxonomy + structural templates)
+with optional LLM-based classification.
 
 Usage:
     email-cli input.csv -o output_dir/
     email-cli classify input.csv -o output_dir/ --verbose
+    email-cli classify input.csv -o output_dir/ --use-llm
     email-cli info input.csv
     email-cli info input.csv --json
 """
@@ -16,6 +18,9 @@ import json
 import logging
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING, Any, Optional
+
+from dotenv import load_dotenv
 
 from .analyzer import DatasetAnalyzer
 from .classifier import EmailClassifier
@@ -23,6 +28,229 @@ from .domains import get_domain_names
 from .processor import StreamingProcessor
 from .reporter import ClassificationReporter
 from .ui import RICH_AVAILABLE, get_ui
+
+if TYPE_CHECKING:
+    from .llm import LLMConfig
+    from .ui import TerminalUI
+
+
+def verify_prerequisites(
+    input_path: Path,
+    output_dir: Path,
+    use_llm: bool,
+    ui: "TerminalUI",
+    quiet: bool = False,
+) -> tuple[bool, list[str], Optional["LLMConfig"]]:
+    """Verify all prerequisites before starting analysis.
+
+    Checks:
+    1. Input file exists and is readable
+    2. Output directory can be created/written to
+    3. LLM model is available and properly loaded (if --use-llm)
+    4. Required dependencies are installed
+
+    Args:
+        input_path: Path to input CSV file.
+        output_dir: Path to output directory.
+        use_llm: Whether LLM classification is enabled.
+        ui: Terminal UI instance for output.
+        quiet: Suppress output if True.
+
+    Returns:
+        Tuple of (success, error_messages, llm_config).
+        If success is False, error_messages contains the issues found.
+        llm_config is returned if LLM is enabled and verified.
+    """
+    errors: list[str] = []
+    warnings: list[str] = []
+    llm_config = None
+
+    if not quiet:
+        ui.print_info("Verifying prerequisites...")
+
+    # -------------------------------------------------------------------------
+    # 1. Verify input file
+    # -------------------------------------------------------------------------
+    if not quiet:
+        ui.print_info("  [1/4] Checking input file...")
+
+    if not input_path.exists():
+        errors.append(f"Input file not found: {input_path}")
+    elif not input_path.is_file():
+        errors.append(f"Input path is not a file: {input_path}")
+    elif input_path.suffix.lower() != ".csv":
+        errors.append(f"Input file must be a CSV file: {input_path}")
+    else:
+        # Try to read first few bytes to verify access
+        try:
+            with open(input_path, "rb") as f:
+                f.read(1024)
+            if not quiet:
+                ui.print_success("  [1/4] Input file: OK")
+        except PermissionError:
+            errors.append(f"Permission denied reading input file: {input_path}")
+        except Exception as e:
+            errors.append(f"Cannot read input file: {e}")
+
+    # -------------------------------------------------------------------------
+    # 2. Verify output directory
+    # -------------------------------------------------------------------------
+    if not quiet:
+        ui.print_info("  [2/4] Checking output directory...")
+
+    try:
+        # Try to create the directory
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Try to create a test file to verify write permissions
+        test_file = output_dir / ".write_test"
+        try:
+            test_file.write_text("test")
+            test_file.unlink()
+            if not quiet:
+                ui.print_success("  [2/4] Output directory: OK")
+        except PermissionError:
+            errors.append(
+                f"Permission denied writing to output directory: {output_dir}"
+            )
+        except Exception as e:
+            errors.append(f"Cannot write to output directory: {e}")
+    except PermissionError:
+        errors.append(f"Permission denied creating output directory: {output_dir}")
+    except Exception as e:
+        errors.append(f"Cannot create output directory: {e}")
+
+    # -------------------------------------------------------------------------
+    # 3. Verify LLM configuration (if enabled)
+    # -------------------------------------------------------------------------
+    if use_llm:
+        if not quiet:
+            ui.print_info("  [3/4] Checking LLM configuration...")
+
+        # Load .env file
+        load_dotenv()
+
+        try:
+            from .llm import LLMConfig
+            from .llm.config import LLMConfigError
+            from .llm.providers import ProviderNotInstalledError, create_llm
+
+            # Load and validate configuration
+            llm_config = LLMConfig.from_env()
+
+            if not quiet:
+                ui.print_info(f"        Provider: {llm_config.provider.value}")
+                ui.print_info(f"        Model: {llm_config.model}")
+
+            # Try to create the LLM instance to verify provider is installed
+            try:
+                llm_instance = create_llm(llm_config)
+
+                # For Ollama, verify the model is available
+                if llm_config.provider.value == "ollama":
+                    if not quiet:
+                        ui.print_info("        Verifying Ollama connection...")
+                    try:
+                        import httpx
+
+                        # Check if Ollama is running
+                        response = httpx.get(
+                            f"{llm_config.ollama_base_url}/api/tags",
+                            timeout=5.0,
+                        )
+                        if response.status_code != 200:
+                            errors.append(
+                                f"Ollama server not responding at {llm_config.ollama_base_url}. "
+                                "Is Ollama running? Start with: ollama serve"
+                            )
+                        else:
+                            # Check if the model is available
+                            models_data = response.json()
+                            available_models = [
+                                m.get("name", "").split(":")[0]
+                                for m in models_data.get("models", [])
+                            ]
+                            model_name = llm_config.model.split(":")[0]
+                            if model_name not in available_models:
+                                errors.append(
+                                    f"Ollama model '{llm_config.model}' not found. "
+                                    f"Available models: {', '.join(available_models) or 'none'}. "
+                                    f"Pull with: ollama pull {llm_config.model}"
+                                )
+                            else:
+                                if not quiet:
+                                    ui.print_success("  [3/4] LLM configuration: OK")
+                    except httpx.ConnectError:
+                        errors.append(
+                            f"Cannot connect to Ollama at {llm_config.ollama_base_url}. "
+                            "Is Ollama running? Start with: ollama serve"
+                        )
+                    except Exception as e:
+                        errors.append(f"Error connecting to Ollama: {e}")
+                else:
+                    # For cloud providers, we trust the config is valid
+                    # (actual API validation happens on first request)
+                    if not quiet:
+                        ui.print_success("  [3/4] LLM configuration: OK")
+
+            except ProviderNotInstalledError as e:
+                errors.append(str(e))
+
+        except ImportError as e:
+            errors.append(
+                "LLM dependencies not installed. "
+                "Install with: pip install email-domain-classifier[llm]\n"
+                f"Details: {e}"
+            )
+        except LLMConfigError as e:
+            errors.append(f"LLM configuration error: {e}")
+        except Exception as e:
+            errors.append(f"LLM initialization error: {e}")
+    else:
+        if not quiet:
+            ui.print_info("  [3/4] LLM configuration: Skipped (not enabled)")
+
+    # -------------------------------------------------------------------------
+    # 4. Verify other dependencies
+    # -------------------------------------------------------------------------
+    if not quiet:
+        ui.print_info("  [4/4] Checking dependencies...")
+
+    # Check for Rich (optional but recommended)
+    try:
+        import rich
+
+        if not quiet:
+            ui.print_success("  [4/4] Dependencies: OK")
+    except ImportError:
+        warnings.append(
+            "Rich library not installed. Terminal output will be basic. "
+            "Install with: pip install rich"
+        )
+        if not quiet:
+            ui.print_warning(
+                "  [4/4] Dependencies: OK (Rich not installed, basic output)"
+            )
+
+    # -------------------------------------------------------------------------
+    # Summary
+    # -------------------------------------------------------------------------
+    if errors:
+        if not quiet:
+            ui.print_error("\nPrerequisite check failed:")
+            for error in errors:
+                ui.print_error(f"  • {error}")
+        return False, errors, None
+
+    if warnings and not quiet:
+        ui.print_warning("\nWarnings:")
+        for warning in warnings:
+            ui.print_warning(f"  • {warning}")
+
+    if not quiet:
+        ui.print_success("\nAll prerequisites verified successfully!\n")
+
+    return True, [], llm_config
 
 
 def setup_logging(log_file: Path, verbose: bool = False) -> logging.Logger:
@@ -146,18 +374,26 @@ def cmd_classify(args: argparse.Namespace) -> int:
     if not args.quiet:
         ui.print_banner()
 
-    # Validate input file
+    # Resolve paths
     input_path = Path(args.input).resolve()
-    if not validate_input(input_path):
-        ui.print_error(f"Invalid input file: {args.input}")
-        ui.print_info("File must exist and have .csv extension")
+    output_dir = Path(args.output).resolve()
+
+    # =========================================================================
+    # PREREQUISITE VERIFICATION
+    # =========================================================================
+    success, errors, llm_config = verify_prerequisites(
+        input_path=input_path,
+        output_dir=output_dir,
+        use_llm=args.use_llm,
+        ui=ui,
+        quiet=args.quiet,
+    )
+
+    if not success:
+        # Errors already printed by verify_prerequisites
         return 1
 
-    # Setup output directory
-    output_dir = Path(args.output).resolve()
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    # Setup logging
+    # Setup logging (output_dir was already created by verify_prerequisites)
     log_file = (
         Path(args.log_file) if args.log_file else output_dir / "classification.log"
     )
@@ -171,8 +407,12 @@ def cmd_classify(args: argparse.Namespace) -> int:
     logger.info(f"Chunk size: {args.chunk_size}")
     logger.info(f"Include details: {args.include_details}")
     logger.info(f"Strict validation: {args.strict_validation}")
+    logger.info(f"LLM enabled: {args.use_llm}")
     if args.max_body_length:
         logger.info(f"Max body length: {args.max_body_length}")
+    if llm_config:
+        logger.info(f"LLM provider: {llm_config.provider.value}")
+        logger.info(f"LLM model: {llm_config.model}")
 
     # Display configuration
     if not args.quiet:
@@ -182,6 +422,10 @@ def cmd_classify(args: argparse.Namespace) -> int:
             "Strict Validation": args.strict_validation,
             "Log File": str(log_file),
         }
+        if args.use_llm and llm_config:
+            config_opts["LLM Classification"] = (
+                f"{llm_config.provider.value}/{llm_config.model}"
+            )
         if args.max_body_length:
             config_opts["Max Body Length"] = f"{args.max_body_length:,} chars"
         ui.print_config(
@@ -190,8 +434,7 @@ def cmd_classify(args: argparse.Namespace) -> int:
             config_opts,
         )
 
-    # Initialize components
-    classifier = EmailClassifier()
+    classifier = EmailClassifier(llm_config=llm_config, use_llm=args.use_llm)
     processor = StreamingProcessor(
         classifier=classifier,
         chunk_size=args.chunk_size,
@@ -495,6 +738,15 @@ Output:
         metavar="CHARS",
         help="Skip emails with body length exceeding this limit (in characters). "
         "Skipped emails are logged to skipped_emails.csv.",
+    )
+
+    # LLM classification options
+    classify_parser.add_argument(
+        "--use-llm",
+        action="store_true",
+        help="Enable LLM-based classification as Method 3. "
+        "Configure LLM settings via .env file (see .env.example). "
+        "Requires: pip install email-domain-classifier[llm]",
     )
 
     # =========================================================================
