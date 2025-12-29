@@ -867,7 +867,9 @@ class HybridClassifier:
         """Send status update if callback is set."""
         if self.status_callback:
             if total_emails > 0:
-                self.status_callback(f"[{email_idx + 1}/{total_emails}] {message}")
+                self.status_callback(
+                    f"Email {email_idx + 1}/{total_emails} - {message}"
+                )
             else:
                 self.status_callback(message)
 
@@ -974,9 +976,7 @@ class HybridClassifier:
                 # Invoke LLM with timing
                 start_time = time.perf_counter()
                 try:
-                    self._update_status(
-                        "LLM called - waiting for response...", email_idx, total_emails
-                    )
+                    self._update_status("waiting for LLM...", email_idx, total_emails)
                     result3 = self.llm_classifier.classify(email)
                     elapsed_ms = (time.perf_counter() - start_time) * 1000
 
