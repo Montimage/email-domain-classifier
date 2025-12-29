@@ -553,8 +553,9 @@ class ClassificationReporter:
                 for label, label_data in sorted_labels:
                     bar_length = int(label_data["percentage"] / 100 * 20)
                     bar = "█" * bar_length + "░" * (20 - bar_length)
+                    label_str = str(label) if label is not None else "(none)"
                     lines.append(
-                        f"    {label:<15} {bar} {label_data['count']:>6,} ({label_data['percentage']:>5.1f}%)"
+                        f"    {label_str:<15} {bar} {label_data['count']:>6,} ({label_data['percentage']:>5.1f}%)"
                     )
 
                 if len(data["distribution"]) > 5:
@@ -610,8 +611,9 @@ class ClassificationReporter:
                 for label, label_data in sorted_labels:
                     with_pct = label_data["with_urls_percentage"]
                     without_pct = label_data["without_urls_percentage"]
+                    label_str = str(label) if label is not None else "(none)"
                     lines.append(
-                        f"    {label:<12}: {label_data['total']:>4,} ({label_data['percentage_of_domain']:>5.1f}%) [URLs: {with_pct:>4.1f}%]"
+                        f"    {label_str:<12}: {label_data['total']:>4,} ({label_data['percentage_of_domain']:>5.1f}%) [URLs: {with_pct:>4.1f}%]"
                     )
 
                 if len(data["labels"]) > 3:
