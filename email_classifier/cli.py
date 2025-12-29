@@ -18,6 +18,7 @@ import json
 import logging
 import sys
 from pathlib import Path
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Optional
 
 from dotenv import load_dotenv
@@ -459,8 +460,12 @@ def cmd_classify(args: argparse.Namespace) -> int:
 
     # Create appropriate classifier based on mode
     classifier: EmailClassifier | HybridClassifier
+    # Status callback will be set after progress bar is created (for hybrid mode)
+    hybrid_status_callback: Optional[Callable[[str], None]] = None
+
     if use_hybrid:
         # Hybrid mode: LLM only when classifiers disagree
+        # Status callback will be set below after progress bar is created
         classifier = HybridClassifier(
             llm_config=llm_config,
             workflow_logger=workflow_logger,
@@ -485,18 +490,34 @@ def cmd_classify(args: argparse.Namespace) -> int:
             # Use Rich progress bar
             progress = ui.create_progress()
             task_id = None
+            current_hybrid_status = ""
 
             def progress_callback(current: int, total: int, status: str) -> None:
-                nonlocal task_id
+                nonlocal task_id, current_hybrid_status
                 if progress is not None:
                     if task_id is None and total > 0:
                         task_id = progress.add_task(
                             "[cyan]Classifying emails...", total=total
                         )
                     if task_id is not None:
+                        # Include hybrid status if available
+                        display_status = status
+                        if current_hybrid_status:
+                            display_status = f"{status} | {current_hybrid_status}"
                         progress.update(
-                            task_id, completed=current, description=f"[cyan]{status}"
+                            task_id, completed=current, description=f"[cyan]{display_status}"
                         )
+
+            def hybrid_status_update(message: str) -> None:
+                nonlocal task_id, current_hybrid_status
+                current_hybrid_status = message
+                # Update progress bar description immediately
+                if progress is not None and task_id is not None:
+                    progress.update(task_id, description=f"[cyan]{message}")
+
+            # Set the status callback on the hybrid classifier
+            if use_hybrid and isinstance(classifier, HybridClassifier):
+                classifier.status_callback = hybrid_status_update
 
             if progress is not None:
                 with progress:
