@@ -776,6 +776,7 @@ class HybridWorkflowStats:
     llm_total_time_ms: float = 0.0
     classic_agreement_count: int = 0
     total_processed: int = 0
+    total_processing_time_ms: float = 0.0  # Total time for all emails
 
     @property
     def llm_avg_time_ms(self) -> float:
@@ -785,11 +786,22 @@ class HybridWorkflowStats:
         return self.llm_total_time_ms / self.llm_call_count
 
     @property
+    def avg_time_per_email_ms(self) -> float:
+        """Calculate average processing time per email."""
+        if self.total_processed == 0:
+            return 0.0
+        return self.total_processing_time_ms / self.total_processed
+
+    @property
     def agreement_rate(self) -> float:
         """Calculate classifier agreement rate (percentage)."""
         if self.total_processed == 0:
             return 0.0
         return (self.classic_agreement_count / self.total_processed) * 100
+
+    def estimate_remaining_time_ms(self, remaining_emails: int) -> float:
+        """Estimate time to process remaining emails."""
+        return self.avg_time_per_email_ms * remaining_emails
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -800,6 +812,8 @@ class HybridWorkflowStats:
             "classic_agreement_count": self.classic_agreement_count,
             "total_processed": self.total_processed,
             "agreement_rate": round(self.agreement_rate, 2),
+            "avg_time_per_email_ms": round(self.avg_time_per_email_ms, 2),
+            "total_processing_time_ms": round(self.total_processing_time_ms, 2),
         }
 
 
@@ -861,15 +875,51 @@ class HybridClassifier:
             logger.warning(f"Failed to initialize LLM classifier: {e}")
             self.llm_classifier = None
 
+    def _format_time(self, ms: float) -> str:
+        """Format milliseconds to human-readable time."""
+        if ms < 1000:
+            return f"{ms:.0f}ms"
+        seconds = ms / 1000
+        if seconds < 60:
+            return f"{seconds:.1f}s"
+        minutes = seconds / 60
+        if minutes < 60:
+            return f"{minutes:.1f}m"
+        hours = minutes / 60
+        return f"{hours:.1f}h"
+
     def _update_status(
         self, message: str, email_idx: int = 0, total_emails: int = 0
     ) -> None:
         """Send status update if callback is set."""
         if self.status_callback:
             if total_emails > 0:
-                self.status_callback(
-                    f"Email {email_idx + 1}/{total_emails} - {message}"
-                )
+                # Build rich status with stats
+                # Note: stats are from PREVIOUS emails (current one not yet finished)
+                remaining = total_emails - email_idx  # Current email not done yet
+                parts = [f"Email {email_idx + 1}/{total_emails}"]
+
+                # Add average time per email (need at least 1 completed email)
+                # Use total_processed - 1 because current email incremented it but isn't done
+                completed_count = self.stats.total_processed - 1
+                if completed_count > 0 and self.stats.total_processing_time_ms > 0:
+                    avg_ms = self.stats.total_processing_time_ms / completed_count
+                    avg_time = self._format_time(avg_ms)
+                    parts.append(f"avg:{avg_time}")
+
+                    # Add ETA based on completed emails' average
+                    if remaining > 0:
+                        eta_ms = avg_ms * remaining
+                        eta = self._format_time(eta_ms)
+                        parts.append(f"ETA:{eta}")
+
+                # Add LLM call count (only if > 0)
+                if self.stats.llm_call_count > 0:
+                    parts.append(f"LLM:{self.stats.llm_call_count}")
+
+                # Combine: "Email 5/100 | avg:1.2s | ETA:2.5m | LLM:3 - waiting..."
+                status_prefix = " | ".join(parts)
+                self.status_callback(f"{status_prefix} - {message}")
             else:
                 self.status_callback(message)
 
@@ -887,6 +937,9 @@ class HybridClassifier:
         Returns:
             Tuple of (domain_name or 'unsure', classification_details)
         """
+        # Start timing for this email
+        email_start_time = time.perf_counter()
+
         self.stats.total_processed += 1
 
         # Step 1: Run Keyword Taxonomy classifier
@@ -1031,7 +1084,12 @@ class HybridClassifier:
                 email_idx, "final_result", result=final_domain, path=details["path"]
             )
 
+        # Record total processing time for this email
+        email_elapsed_ms = (time.perf_counter() - email_start_time) * 1000
+        self.stats.total_processing_time_ms += email_elapsed_ms
+
         details["final_domain"] = final_domain
+        details["processing_time_ms"] = round(email_elapsed_ms, 2)
         return final_domain, details
 
     def _fallback_classification(
