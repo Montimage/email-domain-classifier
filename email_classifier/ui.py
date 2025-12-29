@@ -30,6 +30,7 @@ try:
         TimeElapsedColumn,
         TimeRemainingColumn,
     )
+    from rich.status import Status
     from rich.style import Style
     from rich.table import Table
     from rich.text import Text
@@ -38,6 +39,7 @@ try:
     RICH_AVAILABLE = True
 except ImportError:
     RICH_AVAILABLE = False
+    Status = None  # type: ignore
 
 
 # Custom theme for distinctive look
@@ -62,6 +64,68 @@ CLASSIFIER_THEME = Theme(
         "accent": "bold cyan",
     }
 )
+
+
+class StatusBar:
+    """
+    Real-time status bar for hybrid workflow updates.
+
+    Uses Rich Status for animated single-line updates when available,
+    falls back to simple print otherwise.
+    """
+
+    def __init__(self, console: Optional[Any] = None, quiet: bool = False) -> None:
+        """Initialize the status bar.
+
+        Args:
+            console: Optional Rich Console instance.
+            quiet: If True, suppress all output.
+        """
+        self.quiet = quiet
+        self.console = console
+        self._status: Optional[Any] = None
+        self._active = False
+
+    def __enter__(self) -> "StatusBar":
+        """Enter context manager - start the status display."""
+        if self.quiet:
+            return self
+        if RICH_AVAILABLE and self.console:
+            self._status = self.console.status(
+                "[cyan]Initializing...", spinner="dots12"
+            )
+            self._status.__enter__()
+            self._active = True
+        return self
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        """Exit context manager - stop the status display."""
+        if self._status and self._active:
+            self._status.__exit__(exc_type, exc_val, exc_tb)
+            self._active = False
+
+    def update(self, message: str) -> None:
+        """Update the status message.
+
+        Args:
+            message: New status message to display.
+        """
+        if self.quiet:
+            return
+
+        if self._status and self._active:
+            self._status.update(f"[cyan]{message}")
+        elif not RICH_AVAILABLE:
+            # Fallback: print on same line
+            print(f"\r{message:<60}", end="", flush=True)
+
+    def stop(self) -> None:
+        """Stop the status display."""
+        if self._status and self._active:
+            self._status.stop()
+            self._active = False
+        elif not RICH_AVAILABLE and not self.quiet:
+            print()  # New line after status updates
 
 
 class TerminalUI:
@@ -132,6 +196,14 @@ class TerminalUI:
 
         self.console.print(panel)
         self.console.print()
+
+    def create_status_bar(self) -> StatusBar:
+        """Create a status bar for real-time updates.
+
+        Returns:
+            StatusBar instance that can be used as a context manager.
+        """
+        return StatusBar(console=self.console, quiet=self.quiet)
 
     def create_progress(self) -> Progress | None:
         """Create progress bar context manager."""
@@ -857,6 +929,10 @@ class SimpleUI:
     def create_progress(self) -> None:
         """No-op for simple UI - progress not supported."""
         return None
+
+    def create_status_bar(self) -> StatusBar:
+        """Create a status bar for real-time updates (simple fallback)."""
+        return StatusBar(console=None, quiet=self.quiet)
 
     def print_error(self, message: str) -> None:
         print(f"ERROR: {message}", file=sys.stderr)

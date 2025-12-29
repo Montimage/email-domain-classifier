@@ -637,3 +637,272 @@ class TestClassificationResult:
             method="test",
         )
         assert result.domain is None
+
+
+class TestHybridClassifier:
+    """Test cases for HybridClassifier class."""
+
+    def test_initialization(self):
+        """Test HybridClassifier can be initialized without LLM."""
+        from email_classifier.classifier import HybridClassifier
+
+        classifier = HybridClassifier()
+        assert classifier is not None
+        assert hasattr(classifier, "method1")
+        assert hasattr(classifier, "method2")
+        assert classifier.llm_classifier is None
+
+    def test_initialization_with_status_callback(self):
+        """Test HybridClassifier with status callback."""
+        from email_classifier.classifier import HybridClassifier
+
+        status_messages = []
+
+        def status_callback(msg: str) -> None:
+            status_messages.append(msg)
+
+        classifier = HybridClassifier(status_callback=status_callback)
+        assert classifier.status_callback is not None
+
+    def test_classify_agreement_path(self):
+        """Test classification when both classifiers agree."""
+        from email_classifier.classifier import HybridClassifier
+
+        classifier = HybridClassifier()
+        email_data = {
+            "sender": "alerts@bank.com",
+            "receiver": "customer@email.com",
+            "date": "2024-01-15",
+            "subject": "Your account statement is ready",
+            "body": "Dear Customer, Your monthly bank statement is now available. "
+            "Please review your recent transactions and account balance. "
+            "Your current balance is $1,234.56. Transfer funds securely online.",
+            "urls": "https://bank.com/statement",
+        }
+        domain, details = classifier.classify_dict(email_data)
+        assert domain == "finance"
+        assert details.get("hybrid_workflow") is True
+        # Since both classifiers should agree on finance, path should be classic_only
+        # (Note: may depend on actual classifier results)
+
+    def test_classify_records_stats(self):
+        """Test that hybrid classifier records statistics."""
+        from email_classifier.classifier import HybridClassifier
+
+        classifier = HybridClassifier()
+        email_data = {
+            "sender": "alerts@bank.com",
+            "receiver": "customer@email.com",
+            "date": "2024-01-15",
+            "subject": "Your account balance",
+            "body": "Your bank account balance is $1,234.56.",
+            "urls": "",
+        }
+        classifier.classify_dict(email_data)
+        stats = classifier.get_stats()
+        assert stats.total_processed == 1
+
+    def test_classify_multiple_emails_stats(self):
+        """Test stats accumulation over multiple emails."""
+        from email_classifier.classifier import HybridClassifier
+
+        classifier = HybridClassifier()
+        emails = [
+            {
+                "sender": "bank@finance.com",
+                "receiver": "user@email.com",
+                "date": "2024-01-15",
+                "subject": "Account statement",
+                "body": "Your account balance is ready for review.",
+                "urls": "",
+            },
+            {
+                "sender": "shop@store.com",
+                "receiver": "user@email.com",
+                "date": "2024-01-15",
+                "subject": "Order confirmation",
+                "body": "Your order has been shipped. Track your package.",
+                "urls": "",
+            },
+        ]
+        for email in emails:
+            classifier.classify_dict(email)
+
+        stats = classifier.get_stats()
+        assert stats.total_processed == 2
+
+    def test_reset_stats(self):
+        """Test resetting statistics."""
+        from email_classifier.classifier import HybridClassifier
+
+        classifier = HybridClassifier()
+        email_data = {
+            "sender": "test@example.com",
+            "receiver": "user@email.com",
+            "date": "2024-01-15",
+            "subject": "Test",
+            "body": "Test body",
+            "urls": "",
+        }
+        classifier.classify_dict(email_data)
+        assert classifier.get_stats().total_processed == 1
+
+        classifier.reset_stats()
+        assert classifier.get_stats().total_processed == 0
+
+    def test_status_callback_called(self):
+        """Test that status callback is invoked during classification."""
+        from email_classifier.classifier import HybridClassifier
+
+        status_messages = []
+
+        def status_callback(msg: str) -> None:
+            status_messages.append(msg)
+
+        classifier = HybridClassifier(status_callback=status_callback)
+        email_data = {
+            "sender": "test@example.com",
+            "receiver": "user@email.com",
+            "date": "2024-01-15",
+            "subject": "Test subject",
+            "body": "Test body content",
+            "urls": "",
+        }
+        classifier.classify_dict(email_data)
+
+        # Should have received status updates
+        assert len(status_messages) >= 2  # At least keyword and structural status
+        assert any("Keyword Taxonomy" in msg for msg in status_messages)
+        assert any("Structural Template" in msg for msg in status_messages)
+
+    def test_classify_details_include_hybrid_info(self):
+        """Test that classification details include hybrid workflow info."""
+        from email_classifier.classifier import HybridClassifier
+
+        classifier = HybridClassifier()
+        email_data = {
+            "sender": "test@example.com",
+            "receiver": "user@email.com",
+            "date": "2024-01-15",
+            "subject": "Test",
+            "body": "Test body",
+            "urls": "",
+        }
+        domain, details = classifier.classify_dict(email_data)
+
+        assert "hybrid_workflow" in details
+        assert details["hybrid_workflow"] is True
+        assert "path" in details
+        assert details["path"] in ["classic_only", "llm_assisted"]
+        assert "agreement" in details
+
+    def test_fallback_classification_no_llm(self):
+        """Test fallback classification when LLM is not available."""
+        from email_classifier.classifier import HybridClassifier
+
+        classifier = HybridClassifier()  # No LLM config
+
+        # Ambiguous email that might cause disagreement
+        email_data = {
+            "sender": "info@company.com",
+            "receiver": "user@email.com",
+            "date": "2024-01-15",
+            "subject": "Information",
+            "body": "Here is some information for you.",
+            "urls": "",
+        }
+        domain, details = classifier.classify_dict(email_data)
+
+        # Should still return a valid result via fallback
+        assert domain is not None
+        assert isinstance(domain, str)
+
+
+class TestHybridWorkflowLogger:
+    """Test cases for HybridWorkflowLogger class."""
+
+    def test_initialization_no_file(self):
+        """Test logger initialization without file."""
+        from email_classifier.classifier import HybridWorkflowLogger
+
+        logger = HybridWorkflowLogger()
+        assert logger.log_file is None
+        assert logger._file_handle is None
+
+    def test_log_step(self):
+        """Test logging a step (without file, uses Python logger)."""
+        from email_classifier.classifier import HybridWorkflowLogger
+
+        logger = HybridWorkflowLogger()
+        # Should not raise
+        logger.log_step(0, "keyword_classify", result="finance")
+        logger.log_step(0, "agreement_check", path="classic_only")
+
+    def test_log_step_with_llm_time(self):
+        """Test logging step with LLM time."""
+        from email_classifier.classifier import HybridWorkflowLogger
+
+        logger = HybridWorkflowLogger()
+        logger.log_step(1, "llm_classify", result="technology", llm_time_ms=123.45)
+
+
+class TestHybridWorkflowStats:
+    """Test cases for HybridWorkflowStats dataclass."""
+
+    def test_initialization(self):
+        """Test default initialization."""
+        from email_classifier.classifier import HybridWorkflowStats
+
+        stats = HybridWorkflowStats()
+        assert stats.llm_call_count == 0
+        assert stats.llm_total_time_ms == 0.0
+        assert stats.classic_agreement_count == 0
+        assert stats.total_processed == 0
+
+    def test_llm_avg_time_zero_calls(self):
+        """Test avg time calculation with zero calls."""
+        from email_classifier.classifier import HybridWorkflowStats
+
+        stats = HybridWorkflowStats()
+        assert stats.llm_avg_time_ms == 0.0
+
+    def test_llm_avg_time_with_calls(self):
+        """Test avg time calculation with calls."""
+        from email_classifier.classifier import HybridWorkflowStats
+
+        stats = HybridWorkflowStats(llm_call_count=5, llm_total_time_ms=1000.0)
+        assert stats.llm_avg_time_ms == 200.0
+
+    def test_agreement_rate_zero_processed(self):
+        """Test agreement rate with zero processed."""
+        from email_classifier.classifier import HybridWorkflowStats
+
+        stats = HybridWorkflowStats()
+        assert stats.agreement_rate == 0.0
+
+    def test_agreement_rate_with_processed(self):
+        """Test agreement rate calculation."""
+        from email_classifier.classifier import HybridWorkflowStats
+
+        stats = HybridWorkflowStats(
+            total_processed=100, classic_agreement_count=80, llm_call_count=20
+        )
+        assert stats.agreement_rate == 80.0
+
+    def test_to_dict(self):
+        """Test conversion to dictionary."""
+        from email_classifier.classifier import HybridWorkflowStats
+
+        stats = HybridWorkflowStats(
+            llm_call_count=10,
+            llm_total_time_ms=500.0,
+            classic_agreement_count=90,
+            total_processed=100,
+        )
+        d = stats.to_dict()
+        assert d["llm_call_count"] == 10
+        assert d["llm_total_time_ms"] == 500.0
+        assert d["llm_avg_time_ms"] == 50.0
+        assert d["classic_agreement_count"] == 90
+        assert d["total_processed"] == 100
+        assert d["agreement_rate"] == 90.0

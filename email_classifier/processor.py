@@ -15,7 +15,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import IO, Any, Dict, List, Optional
 
-from .classifier import EmailClassifier, EmailData
+from .classifier import EmailClassifier, EmailData, HybridClassifier
 from .domains import get_domain_names
 from .validator import (
     EmailValidator,
@@ -27,6 +27,41 @@ from .validator import (
 
 
 @dataclass
+class HybridWorkflowProcessingStats:
+    """Statistics for hybrid classification workflow during processing."""
+
+    llm_call_count: int = 0
+    llm_total_time_ms: float = 0.0
+    classic_agreement_count: int = 0
+    total_hybrid_processed: int = 0
+
+    @property
+    def llm_avg_time_ms(self) -> float:
+        """Calculate average LLM response time."""
+        if self.llm_call_count == 0:
+            return 0.0
+        return self.llm_total_time_ms / self.llm_call_count
+
+    @property
+    def agreement_rate(self) -> float:
+        """Calculate classifier agreement rate (percentage)."""
+        if self.total_hybrid_processed == 0:
+            return 0.0
+        return (self.classic_agreement_count / self.total_hybrid_processed) * 100
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary."""
+        return {
+            "llm_call_count": self.llm_call_count,
+            "llm_total_time_ms": round(self.llm_total_time_ms, 2),
+            "llm_avg_time_ms": round(self.llm_avg_time_ms, 2),
+            "classic_agreement_count": self.classic_agreement_count,
+            "total_hybrid_processed": self.total_hybrid_processed,
+            "agreement_rate": round(self.agreement_rate, 2),
+        }
+
+
+@dataclass
 class ProcessingStats:
     """Statistics collected during processing.
 
@@ -34,6 +69,7 @@ class ProcessingStats:
     - label_distributions: Original label values by classified domain
     - url_distributions: URL presence (True/False) by domain
     - cross_tabulation: Label x URL relationship matrix by domain
+    - hybrid_workflow: Statistics from hybrid classification workflow
     """
 
     total_processed: int = 0
@@ -58,6 +94,10 @@ class ProcessingStats:
     validation_stats: ValidationStats = field(default_factory=ValidationStats)
     # Skipped email statistics
     skipped_stats: SkippedStats = field(default_factory=SkippedStats)
+    # Hybrid workflow statistics
+    hybrid_workflow: HybridWorkflowProcessingStats = field(
+        default_factory=HybridWorkflowProcessingStats
+    )
 
     def to_dict(self) -> dict:
         """Convert stats to dictionary."""
@@ -86,6 +126,7 @@ class ProcessingStats:
             },
             "validation": self.validation_stats.to_dict(),
             "skipped": self.skipped_stats.to_dict(),
+            "hybrid_workflow": self.hybrid_workflow.to_dict(),
         }
 
 
@@ -206,19 +247,23 @@ class StreamingProcessor:
 
     def __init__(
         self,
-        classifier: EmailClassifier | None = None,
+        classifier: EmailClassifier | HybridClassifier | None = None,
         chunk_size: int = 1000,
         logger: logging.Logger | None = None,
         allow_large_fields: bool = True,
         strict_validation: bool = False,
         max_body_length: int | None = None,
+        use_hybrid: bool = False,
     ) -> None:
-        self.classifier = classifier or EmailClassifier()
+        self.classifier: EmailClassifier | HybridClassifier = (
+            classifier or EmailClassifier()
+        )
         self.chunk_size = chunk_size
         self.logger = logger or logging.getLogger(__name__)
         self.allow_large_fields = allow_large_fields
         self.strict_validation = strict_validation
         self.max_body_length = max_body_length
+        self.use_hybrid = use_hybrid
         self.validator = EmailValidator()
         self.stats = ProcessingStats()
 
@@ -462,8 +507,13 @@ class StreamingProcessor:
                     # Normalize row to standard column structure
                     normalized_row = self._normalize_row(email_dict)
 
-                    # Classify email
-                    domain, details = self.classifier.classify_dict(normalized_row)
+                    # Classify email (use different call for hybrid classifier)
+                    if self.use_hybrid and isinstance(self.classifier, HybridClassifier):
+                        domain, details = self.classifier.classify_dict(
+                            normalized_row, email_idx=idx
+                        )
+                    else:
+                        domain, details = self.classifier.classify_dict(normalized_row)
 
                     # Prepare output row with standard columns
                     # Preserve original label from input (do not overwrite with domain)
@@ -566,6 +616,18 @@ class StreamingProcessor:
 
         self.stats.end_time = datetime.now()
 
+        # Collect hybrid workflow stats if using hybrid classifier
+        if self.use_hybrid and isinstance(self.classifier, HybridClassifier):
+            hybrid_stats = self.classifier.get_stats()
+            self.stats.hybrid_workflow.llm_call_count = hybrid_stats.llm_call_count
+            self.stats.hybrid_workflow.llm_total_time_ms = hybrid_stats.llm_total_time_ms
+            self.stats.hybrid_workflow.classic_agreement_count = (
+                hybrid_stats.classic_agreement_count
+            )
+            self.stats.hybrid_workflow.total_hybrid_processed = (
+                hybrid_stats.total_processed
+            )
+
         # Log summary
         duration = (self.stats.end_time - self.stats.start_time).total_seconds()
         self.logger.info(f"Processing complete in {duration:.2f} seconds")
@@ -580,6 +642,21 @@ class StreamingProcessor:
                 f"Total skipped (body too long): {self.stats.skipped_stats.skipped_body_too_long}"
             )
         self.logger.info(f"Errors: {self.stats.errors}")
+
+        # Log hybrid workflow stats
+        if self.use_hybrid:
+            self.logger.info(
+                f"Hybrid workflow - LLM calls: {self.stats.hybrid_workflow.llm_call_count}"
+            )
+            self.logger.info(
+                f"Hybrid workflow - Agreement rate: "
+                f"{self.stats.hybrid_workflow.agreement_rate:.1f}%"
+            )
+            if self.stats.hybrid_workflow.llm_call_count > 0:
+                self.logger.info(
+                    f"Hybrid workflow - Avg LLM time: "
+                    f"{self.stats.hybrid_workflow.llm_avg_time_ms:.0f}ms"
+                )
 
         return self.stats
 

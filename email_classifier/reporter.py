@@ -65,6 +65,10 @@ class ClassificationReporter:
             "quality_metrics": self._generate_quality_metrics(stats),
         }
 
+        # Add hybrid workflow stats if available
+        if stats.hybrid_workflow.total_hybrid_processed > 0:
+            report["hybrid_workflow"] = self._generate_hybrid_workflow_stats(stats)
+
         if self.config.include_recommendations:
             report["recommendations"] = self._generate_recommendations(stats)
 
@@ -205,6 +209,25 @@ class ClassificationReporter:
             "unsure_rate": (
                 round(stats.total_unsure / stats.total_processed * 100, 2)
                 if stats.total_processed > 0
+                else 0
+            ),
+        }
+
+    def _generate_hybrid_workflow_stats(self, stats: ProcessingStats) -> dict:
+        """Generate hybrid workflow statistics."""
+        hybrid = stats.hybrid_workflow
+        return {
+            "total_processed": hybrid.total_hybrid_processed,
+            "llm_call_count": hybrid.llm_call_count,
+            "classic_agreement_count": hybrid.classic_agreement_count,
+            "agreement_rate": round(hybrid.agreement_rate, 2),
+            "llm_total_time_ms": round(hybrid.llm_total_time_ms, 2),
+            "llm_avg_time_ms": round(hybrid.llm_avg_time_ms, 2),
+            "llm_savings_percent": (
+                round(
+                    (1 - hybrid.llm_call_count / hybrid.total_hybrid_processed) * 100, 2
+                )
+                if hybrid.total_hybrid_processed > 0
                 else 0
             ),
         }
@@ -464,6 +487,30 @@ class ClassificationReporter:
                     f"    - Body too long:           {breakdown['body_too_long']:,}"
                 )
             lines.append("  (See skipped_emails.csv for details)")
+            lines.append("")
+
+        # Hybrid workflow section
+        if report.get("hybrid_workflow"):
+            lines.append("─" * 80)
+            lines.append("  HYBRID WORKFLOW STATISTICS")
+            lines.append("─" * 80)
+            hybrid = report["hybrid_workflow"]
+            lines.append(
+                f"  Total Processed (Hybrid): {hybrid['total_processed']:,}"
+            )
+            lines.append(
+                f"  Classic Agreement Count:  {hybrid['classic_agreement_count']:,}"
+            )
+            lines.append(f"  Agreement Rate:           {hybrid['agreement_rate']}%")
+            lines.append(f"  LLM Calls Made:           {hybrid['llm_call_count']:,}")
+            lines.append(f"  LLM Savings:              {hybrid['llm_savings_percent']}%")
+            if hybrid["llm_call_count"] > 0:
+                lines.append(
+                    f"  LLM Total Time:           {hybrid['llm_total_time_ms']:.0f}ms"
+                )
+                lines.append(
+                    f"  LLM Avg Response Time:    {hybrid['llm_avg_time_ms']:.0f}ms"
+                )
             lines.append("")
 
         # Domain breakdown with bar chart

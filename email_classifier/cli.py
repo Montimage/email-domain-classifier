@@ -23,11 +23,11 @@ from typing import TYPE_CHECKING, Any, Optional
 from dotenv import load_dotenv
 
 from .analyzer import DatasetAnalyzer
-from .classifier import EmailClassifier
+from .classifier import EmailClassifier, HybridClassifier, HybridWorkflowLogger
 from .domains import get_domain_names
 from .processor import StreamingProcessor
 from .reporter import ClassificationReporter
-from .ui import RICH_AVAILABLE, get_ui
+from .ui import RICH_AVAILABLE, StatusBar, get_ui
 
 if TYPE_CHECKING:
     from .llm import LLMConfig
@@ -374,6 +374,12 @@ def cmd_classify(args: argparse.Namespace) -> int:
     if not args.quiet:
         ui.print_banner()
 
+    # Validate --force-llm requires --use-llm
+    force_llm = getattr(args, "force_llm", False)
+    if force_llm and not args.use_llm:
+        ui.print_error("--force-llm requires --use-llm")
+        return 1
+
     # Resolve paths
     input_path = Path(args.input).resolve()
     output_dir = Path(args.output).resolve()
@@ -399,6 +405,9 @@ def cmd_classify(args: argparse.Namespace) -> int:
     )
     logger = setup_logging(log_file, verbose=args.verbose)
 
+    # Determine workflow mode
+    use_hybrid = args.use_llm and not force_llm
+
     logger.info("=" * 60)
     logger.info("EMAIL DOMAIN CLASSIFIER - Started")
     logger.info("=" * 60)
@@ -408,6 +417,8 @@ def cmd_classify(args: argparse.Namespace) -> int:
     logger.info(f"Include details: {args.include_details}")
     logger.info(f"Strict validation: {args.strict_validation}")
     logger.info(f"LLM enabled: {args.use_llm}")
+    logger.info(f"Hybrid workflow: {use_hybrid}")
+    logger.info(f"Force LLM: {force_llm}")
     if args.max_body_length:
         logger.info(f"Max body length: {args.max_body_length}")
     if llm_config:
@@ -423,9 +434,14 @@ def cmd_classify(args: argparse.Namespace) -> int:
             "Log File": str(log_file),
         }
         if args.use_llm and llm_config:
-            config_opts["LLM Classification"] = (
-                f"{llm_config.provider.value}/{llm_config.model}"
-            )
+            if use_hybrid:
+                config_opts["LLM Classification"] = (
+                    f"Hybrid ({llm_config.provider.value}/{llm_config.model})"
+                )
+            else:
+                config_opts["LLM Classification"] = (
+                    f"Force ({llm_config.provider.value}/{llm_config.model})"
+                )
         if args.max_body_length:
             config_opts["Max Body Length"] = f"{args.max_body_length:,} chars"
         ui.print_config(
@@ -434,7 +450,25 @@ def cmd_classify(args: argparse.Namespace) -> int:
             config_opts,
         )
 
-    classifier = EmailClassifier(llm_config=llm_config, use_llm=args.use_llm)
+    # Initialize workflow logger for hybrid mode
+    workflow_logger: Optional[HybridWorkflowLogger] = None
+    if use_hybrid:
+        workflow_log_path = output_dir / "hybrid_workflow.jsonl"
+        workflow_logger = HybridWorkflowLogger(str(workflow_log_path))
+        logger.info(f"Hybrid workflow log: {workflow_log_path}")
+
+    # Create appropriate classifier based on mode
+    classifier: EmailClassifier | HybridClassifier
+    if use_hybrid:
+        # Hybrid mode: LLM only when classifiers disagree
+        classifier = HybridClassifier(
+            llm_config=llm_config,
+            workflow_logger=workflow_logger,
+        )
+    else:
+        # Standard mode: dual-method or three-method (with --force-llm)
+        classifier = EmailClassifier(llm_config=llm_config, use_llm=args.use_llm)
+
     processor = StreamingProcessor(
         classifier=classifier,
         chunk_size=args.chunk_size,
@@ -442,6 +476,7 @@ def cmd_classify(args: argparse.Namespace) -> int:
         allow_large_fields=args.allow_large_fields,
         strict_validation=args.strict_validation,
         max_body_length=args.max_body_length,
+        use_hybrid=use_hybrid,
     )
 
     # Process emails with progress tracking
@@ -537,6 +572,10 @@ def cmd_classify(args: argparse.Namespace) -> int:
             # Show recommendations
             if "recommendations" in report:
                 ui.print_recommendations(report["recommendations"])
+
+    # Close workflow logger if used
+    if workflow_logger:
+        workflow_logger.close()
 
     # Final success message
     if not args.quiet:
@@ -744,9 +783,17 @@ Output:
     classify_parser.add_argument(
         "--use-llm",
         action="store_true",
-        help="Enable LLM-based classification as Method 3. "
+        help="Enable LLM-based classification (hybrid mode by default: "
+        "LLM only when classic classifiers disagree). "
         "Configure LLM settings via .env file (see .env.example). "
         "Requires: pip install email-domain-classifier[llm]",
+    )
+
+    classify_parser.add_argument(
+        "--force-llm",
+        action="store_true",
+        help="Force LLM classification for every email (requires --use-llm). "
+        "Overrides default hybrid mode to use three-method weighted scoring.",
     )
 
     # =========================================================================

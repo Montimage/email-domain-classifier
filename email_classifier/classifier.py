@@ -5,11 +5,14 @@ Email classifier implementing multiple classification methods:
 - Method 3: LLM-based Classification (optional)
 """
 
+import json
 import logging
 import re
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from datetime import datetime
+from typing import IO, TYPE_CHECKING, Any, Dict, List, Optional, Protocol, Tuple
 
 from .domains import DOMAINS, DomainProfile, get_domain_names
 
@@ -17,6 +20,77 @@ if TYPE_CHECKING:
     from .llm import LLMClassifier, LLMConfig
 
 logger = logging.getLogger(__name__)
+
+
+class StatusCallback(Protocol):
+    """Protocol for status update callbacks."""
+
+    def __call__(self, message: str) -> None:
+        """Update status with message."""
+        ...
+
+
+class HybridWorkflowLogger:
+    """Structured JSON logger for hybrid workflow steps."""
+
+    def __init__(self, log_file: Optional[str] = None) -> None:
+        """Initialize the hybrid workflow logger.
+
+        Args:
+            log_file: Optional path to log file. If None, uses Python logging.
+        """
+        self.log_file = log_file
+        self._file_handle: Optional[IO[str]] = None
+        if log_file:
+            self._file_handle = open(log_file, "a", encoding="utf-8")
+
+    def log_step(
+        self,
+        email_idx: int,
+        step: str,
+        result: Optional[str] = None,
+        path: Optional[str] = None,
+        llm_time_ms: Optional[float] = None,
+        extra: Optional[dict[str, Any]] = None,
+    ) -> None:
+        """Log a workflow step as JSON.
+
+        Args:
+            email_idx: Index of the email being processed.
+            step: Step name (keyword_classify, structural_classify, agreement_check,
+                  llm_classify, final_result).
+            result: Classification result domain.
+            path: Path taken (classic_only or llm_assisted).
+            llm_time_ms: LLM response time in milliseconds.
+            extra: Additional data to include.
+        """
+        entry: dict[str, Any] = {
+            "timestamp": datetime.now().isoformat(),
+            "email_idx": email_idx,
+            "step": step,
+        }
+        if result is not None:
+            entry["result"] = result
+        if path is not None:
+            entry["path"] = path
+        if llm_time_ms is not None:
+            entry["llm_time_ms"] = round(llm_time_ms, 2)
+        if extra:
+            entry.update(extra)
+
+        json_line = json.dumps(entry)
+
+        if self._file_handle:
+            self._file_handle.write(json_line + "\n")
+            self._file_handle.flush()
+        else:
+            logger.info(f"[HybridWorkflow] {json_line}")
+
+    def close(self) -> None:
+        """Close the log file if open."""
+        if self._file_handle:
+            self._file_handle.close()
+            self._file_handle = None
 
 
 @dataclass
@@ -692,3 +766,299 @@ class EmailClassifier:
         """Classify email from dictionary input."""
         email = EmailData.from_dict(email_dict)
         return self.classify(email)
+
+
+@dataclass
+class HybridWorkflowStats:
+    """Statistics for hybrid classification workflow."""
+
+    llm_call_count: int = 0
+    llm_total_time_ms: float = 0.0
+    classic_agreement_count: int = 0
+    total_processed: int = 0
+
+    @property
+    def llm_avg_time_ms(self) -> float:
+        """Calculate average LLM response time."""
+        if self.llm_call_count == 0:
+            return 0.0
+        return self.llm_total_time_ms / self.llm_call_count
+
+    @property
+    def agreement_rate(self) -> float:
+        """Calculate classifier agreement rate (percentage)."""
+        if self.total_processed == 0:
+            return 0.0
+        return (self.classic_agreement_count / self.total_processed) * 100
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary."""
+        return {
+            "llm_call_count": self.llm_call_count,
+            "llm_total_time_ms": round(self.llm_total_time_ms, 2),
+            "llm_avg_time_ms": round(self.llm_avg_time_ms, 2),
+            "classic_agreement_count": self.classic_agreement_count,
+            "total_processed": self.total_processed,
+            "agreement_rate": round(self.agreement_rate, 2),
+        }
+
+
+class HybridClassifier:
+    """
+    Hybrid classifier that runs classic classifiers first and only
+    invokes LLM when they disagree.
+
+    Workflow:
+    1. Run Keyword Taxonomy classifier
+    2. Run Structural Template classifier
+    3. If both agree on domain, accept that result (skip LLM)
+    4. If they disagree, invoke LLM for tie-breaking
+    """
+
+    GLOBAL_THRESHOLD = 0.15
+
+    def __init__(
+        self,
+        llm_config: Optional["LLMConfig"] = None,
+        domains: dict[str, DomainProfile] | None = None,
+        status_callback: Optional[Callable[[str], None]] = None,
+        workflow_logger: Optional[HybridWorkflowLogger] = None,
+    ) -> None:
+        """Initialize the hybrid classifier.
+
+        Args:
+            llm_config: Configuration for LLM classifier.
+            domains: Optional custom domain profiles.
+            status_callback: Optional callback for status updates.
+            workflow_logger: Optional logger for structured workflow logging.
+        """
+        self.domains = domains or DOMAINS
+        self.method1 = KeywordTaxonomyClassifier(self.domains)
+        self.method2 = StructuralTemplateClassifier(self.domains)
+        self.status_callback = status_callback
+        self.workflow_logger = workflow_logger
+        self.stats = HybridWorkflowStats()
+
+        # Initialize LLM classifier
+        self.llm_classifier: Optional["LLMClassifier"] = None
+        self._llm_config = llm_config
+        if llm_config is not None:
+            self._init_llm_classifier(llm_config)
+
+    def _init_llm_classifier(self, config: "LLMConfig") -> None:
+        """Initialize the LLM classifier."""
+        try:
+            from .llm import LLMClassifier
+
+            self.llm_classifier = LLMClassifier(config)
+            logger.info(
+                f"Hybrid classifier LLM initialized: {config.provider.value}/{config.model}"
+            )
+        except ImportError as e:
+            logger.warning(f"LLM dependencies not installed: {e}")
+            self.llm_classifier = None
+        except Exception as e:
+            logger.warning(f"Failed to initialize LLM classifier: {e}")
+            self.llm_classifier = None
+
+    def _update_status(self, message: str) -> None:
+        """Send status update if callback is set."""
+        if self.status_callback:
+            self.status_callback(message)
+
+    def classify(
+        self, email: EmailData, email_idx: int = 0
+    ) -> tuple[str, dict[str, Any]]:
+        """
+        Classify email using hybrid workflow.
+
+        Args:
+            email: Email data to classify.
+            email_idx: Index of email for logging.
+
+        Returns:
+            Tuple of (domain_name or 'unsure', classification_details)
+        """
+        self.stats.total_processed += 1
+
+        # Step 1: Run Keyword Taxonomy classifier
+        self._update_status("Classifying with Keyword Taxonomy...")
+        result1 = self.method1.classify(email)
+        if self.workflow_logger:
+            self.workflow_logger.log_step(
+                email_idx, "keyword_classify", result=result1.domain
+            )
+
+        # Step 2: Run Structural Template classifier
+        self._update_status("Classifying with Structural Template...")
+        result2 = self.method2.classify(email)
+        if self.workflow_logger:
+            self.workflow_logger.log_step(
+                email_idx, "structural_classify", result=result2.domain
+            )
+
+        # Initialize details
+        details: dict[str, Any] = {
+            "method1": {
+                "domain": result1.domain,
+                "confidence": result1.confidence,
+                "scores": result1.scores,
+            },
+            "method2": {
+                "domain": result2.domain,
+                "confidence": result2.confidence,
+                "scores": result2.scores,
+            },
+            "hybrid_workflow": True,
+        }
+
+        # Step 3: Check agreement
+        classifiers_agree = (
+            result1.domain is not None
+            and result2.domain is not None
+            and result1.domain == result2.domain
+        )
+
+        if classifiers_agree:
+            # Both classifiers agree - skip LLM
+            final_domain = result1.domain  # type: ignore[assignment]
+            self.stats.classic_agreement_count += 1
+            details["path"] = "classic_only"
+            details["agreement"] = True
+
+            self._update_status(f"Classifiers agree - accepting '{final_domain}'")
+            if self.workflow_logger:
+                self.workflow_logger.log_step(
+                    email_idx,
+                    "agreement_check",
+                    result=final_domain,
+                    path="classic_only",
+                )
+        else:
+            # Classifiers disagree - invoke LLM
+            details["path"] = "llm_assisted"
+            details["agreement"] = False
+
+            if self.llm_classifier is None:
+                # No LLM available, fall back to weighted combination
+                final_domain = self._fallback_classification(result1, result2, details)
+                if self.workflow_logger:
+                    self.workflow_logger.log_step(
+                        email_idx,
+                        "agreement_check",
+                        result=final_domain,
+                        path="llm_assisted",
+                        extra={"llm_fallback": True, "reason": "no_llm_available"},
+                    )
+            else:
+                self._update_status("Classifiers disagree - invoking LLM...")
+                if self.workflow_logger:
+                    self.workflow_logger.log_step(
+                        email_idx, "agreement_check", path="llm_assisted"
+                    )
+
+                # Invoke LLM with timing
+                start_time = time.perf_counter()
+                try:
+                    self._update_status("LLM called - waiting for response...")
+                    result3 = self.llm_classifier.classify(email)
+                    elapsed_ms = (time.perf_counter() - start_time) * 1000
+
+                    self.stats.llm_call_count += 1
+                    self.stats.llm_total_time_ms += elapsed_ms
+
+                    details["method3"] = {
+                        "domain": result3.domain,
+                        "confidence": result3.confidence,
+                        "scores": result3.scores,
+                        "response_time_ms": round(elapsed_ms, 2),
+                    }
+
+                    final_domain = result3.domain or "unsure"
+
+                    self._update_status(
+                        f"LLM responded in {elapsed_ms:.0f}ms - classified as '{final_domain}'"
+                    )
+                    if self.workflow_logger:
+                        self.workflow_logger.log_step(
+                            email_idx,
+                            "llm_classify",
+                            result=final_domain,
+                            llm_time_ms=elapsed_ms,
+                        )
+
+                except Exception as e:
+                    elapsed_ms = (time.perf_counter() - start_time) * 1000
+                    logger.warning(f"LLM classification failed: {e}")
+                    details["method3"] = {
+                        "error": str(e),
+                        "response_time_ms": round(elapsed_ms, 2),
+                    }
+                    # Fall back to weighted combination
+                    final_domain = self._fallback_classification(
+                        result1, result2, details
+                    )
+                    if self.workflow_logger:
+                        self.workflow_logger.log_step(
+                            email_idx,
+                            "llm_classify",
+                            result=final_domain,
+                            llm_time_ms=elapsed_ms,
+                            extra={"error": str(e)},
+                        )
+
+        # Log final result
+        if self.workflow_logger:
+            self.workflow_logger.log_step(
+                email_idx, "final_result", result=final_domain, path=details["path"]
+            )
+
+        details["final_domain"] = final_domain
+        return final_domain, details
+
+    def _fallback_classification(
+        self,
+        result1: ClassificationResult,
+        result2: ClassificationResult,
+        details: dict[str, Any],
+    ) -> str:
+        """Fall back to weighted combination when LLM is unavailable."""
+        # Use 60/40 weighting like dual-method
+        combined_scores: dict[str, float] = {}
+        all_domains = set(result1.scores.keys()) | set(result2.scores.keys())
+
+        for domain in all_domains:
+            score1 = result1.scores.get(domain, 0.0)
+            score2 = result2.scores.get(domain, 0.0)
+            combined_scores[domain] = (score1 * 0.6) + (score2 * 0.4)
+
+        details["combined_scores"] = combined_scores
+
+        if combined_scores:
+            best_domain = max(combined_scores, key=lambda k: combined_scores[k])
+            best_score = combined_scores[best_domain]
+            details["final_confidence"] = best_score
+
+            if best_score >= self.GLOBAL_THRESHOLD:
+                return best_domain
+            else:
+                details["reason"] = "below_threshold"
+                return "unsure"
+        else:
+            details["reason"] = "no_scores"
+            return "unsure"
+
+    def classify_dict(
+        self, email_dict: dict[str, Any], email_idx: int = 0
+    ) -> tuple[str, dict[str, Any]]:
+        """Classify email from dictionary input."""
+        email = EmailData.from_dict(email_dict)
+        return self.classify(email, email_idx)
+
+    def get_stats(self) -> HybridWorkflowStats:
+        """Get current workflow statistics."""
+        return self.stats
+
+    def reset_stats(self) -> None:
+        """Reset workflow statistics."""
+        self.stats = HybridWorkflowStats()
