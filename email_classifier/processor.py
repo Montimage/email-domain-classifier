@@ -563,18 +563,20 @@ class StreamingProcessor:
                     self.stats.url_distributions[domain][has_url] += 1
                     self.stats.cross_tabulation[domain][original_label][has_url] += 1
 
-                    # Log periodically
+                    # Log and progress callback based on chunk_size
                     if (idx + 1) % self.chunk_size == 0:
                         self.logger.info(
                             f"Processed {idx + 1}/{total_rows} emails "
                             f"({(idx + 1) / total_rows * 100:.1f}%)"
                         )
 
-                    # Progress callback
-                    if progress_callback and idx % 100 == 0:
-                        progress_callback(
-                            idx + 1, total_rows, f"Processing email {idx + 1}"
-                        )
+                        # Progress callback respects chunk_size
+                        if progress_callback:
+                            progress_callback(
+                                idx + 1,
+                                total_rows,
+                                f"Processing email {idx + 1}/{total_rows}",
+                            )
 
                 except ValueError as e:
                     # Re-raise ValueError (used for strict validation mode)

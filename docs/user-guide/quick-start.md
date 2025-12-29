@@ -102,8 +102,8 @@ email-cli your_data.csv -o output/
 # With detailed output and progress
 email-cli your_data.csv -o output/ --verbose --include-details
 
-# For large files, adjust chunk size
-email-cli large_dataset.csv -o output/ --chunk-size 500
+# For large files, reduce progress update frequency
+email-cli large_dataset.csv -o output/ --chunk-size 100
 ```
 
 ## 🔧 Common Options
@@ -116,7 +116,7 @@ Essential Options:
   -v, --verbose             Show detailed progress
   -q, --quiet               Suppress console output
   --include-details          Add classification scores to output
-  --chunk-size INT           Adjust memory usage (default: 1000)
+  --chunk-size INT           Progress update frequency (default: 1)
   --list-domains           Show all supported domains
   --help                   Show all options
 ```

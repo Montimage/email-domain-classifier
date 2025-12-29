@@ -54,10 +54,8 @@ python -c "from rich.console import Console; Console().print('[bold green]Rich w
 
 **Solution**:
 ```bash
-# Reduce chunk size
-email-cli large_file.csv -o output/ --chunk-size 500
-
-# Process in parts
+# Emails are streamed; memory usage is minimal
+# If issues persist, process in parts
 head -n 100000 large_file.csv > part1.csv
 email-cli part1.csv -o output/
 ```
@@ -68,8 +66,8 @@ email-cli part1.csv -o output/
 
 **Solution**:
 ```bash
-# Increase chunk size for faster I/O
-email-cli data.csv -o output/ --chunk-size 2000
+# Reduce progress update frequency for less overhead
+email-cli data.csv -o output/ --chunk-size 100
 
 # Check for very long emails
 email-cli info data.csv  # View body length distribution

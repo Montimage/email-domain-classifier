@@ -105,9 +105,9 @@ flowchart LR
     class Process1,Process2,Write1,Write2 action
 ```
 
-- **Default Chunk Size**: 1000 emails
-- **Memory Usage**: ~2MB per 1000 emails
-- **Configurable**: `--chunk-size` CLI option
+- **Default Chunk Size**: 1 (progress updates every email)
+- **Memory Usage**: Streaming (minimal memory footprint)
+- **Configurable**: `--chunk-size` CLI option for progress update frequency
 
 ## Related Documentation
 

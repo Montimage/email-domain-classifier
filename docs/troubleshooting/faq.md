@@ -79,8 +79,8 @@ Typical speed: 1,000-5,000 emails/second depending on:
 ### How can I speed up processing?
 
 ```bash
-# Increase chunk size
-email-cli data.csv -o output/ --chunk-size 2000
+# Reduce progress update frequency (default is 1)
+email-cli data.csv -o output/ --chunk-size 100
 
 # Filter long emails
 email-cli data.csv -o output/ --max-body-length 5000
@@ -90,9 +90,10 @@ email-cli data.csv -o output/ --max-body-length 5000
 
 ### What is the memory usage?
 
-Memory usage scales with chunk size, not file size:
-- Default (1000 emails): ~100MB
-- Large chunks (5000): ~500MB
+Memory usage is minimal due to streaming processing:
+- Emails are processed one at a time
+- Memory footprint is independent of file size
+- chunk-size only controls progress update frequency
 
 ## Validation Questions
 

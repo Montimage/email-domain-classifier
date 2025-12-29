@@ -728,8 +728,8 @@ Output:
     classify_parser.add_argument(
         "--chunk-size",
         type=int,
-        default=1000,
-        help="Number of emails to process before logging progress (default: 1000)",
+        default=1,
+        help="Number of emails to process before updating progress (default: 1)",
     )
 
     classify_parser.add_argument(
