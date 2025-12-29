@@ -510,7 +510,7 @@ class StreamingProcessor:
                     # Classify email (use different call for hybrid classifier)
                     if self.use_hybrid and isinstance(self.classifier, HybridClassifier):
                         domain, details = self.classifier.classify_dict(
-                            normalized_row, email_idx=idx
+                            normalized_row, email_idx=idx, total_emails=total_rows
                         )
                     else:
                         domain, details = self.classifier.classify_dict(normalized_row)

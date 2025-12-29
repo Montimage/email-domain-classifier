@@ -861,13 +861,18 @@ class HybridClassifier:
             logger.warning(f"Failed to initialize LLM classifier: {e}")
             self.llm_classifier = None
 
-    def _update_status(self, message: str) -> None:
+    def _update_status(
+        self, message: str, email_idx: int = 0, total_emails: int = 0
+    ) -> None:
         """Send status update if callback is set."""
         if self.status_callback:
-            self.status_callback(message)
+            if total_emails > 0:
+                self.status_callback(f"[{email_idx + 1}/{total_emails}] {message}")
+            else:
+                self.status_callback(message)
 
     def classify(
-        self, email: EmailData, email_idx: int = 0
+        self, email: EmailData, email_idx: int = 0, total_emails: int = 0
     ) -> tuple[str, dict[str, Any]]:
         """
         Classify email using hybrid workflow.
@@ -875,6 +880,7 @@ class HybridClassifier:
         Args:
             email: Email data to classify.
             email_idx: Index of email for logging.
+            total_emails: Total number of emails for progress display.
 
         Returns:
             Tuple of (domain_name or 'unsure', classification_details)
@@ -882,7 +888,9 @@ class HybridClassifier:
         self.stats.total_processed += 1
 
         # Step 1: Run Keyword Taxonomy classifier
-        self._update_status("Classifying with Keyword Taxonomy...")
+        self._update_status(
+            "Classifying with Keyword Taxonomy...", email_idx, total_emails
+        )
         result1 = self.method1.classify(email)
         if self.workflow_logger:
             self.workflow_logger.log_step(
@@ -890,7 +898,9 @@ class HybridClassifier:
             )
 
         # Step 2: Run Structural Template classifier
-        self._update_status("Classifying with Structural Template...")
+        self._update_status(
+            "Classifying with Structural Template...", email_idx, total_emails
+        )
         result2 = self.method2.classify(email)
         if self.workflow_logger:
             self.workflow_logger.log_step(
@@ -926,7 +936,9 @@ class HybridClassifier:
             details["path"] = "classic_only"
             details["agreement"] = True
 
-            self._update_status(f"Classifiers agree - accepting '{final_domain}'")
+            self._update_status(
+                f"Classifiers agree - '{final_domain}'", email_idx, total_emails
+            )
             if self.workflow_logger:
                 self.workflow_logger.log_step(
                     email_idx,
@@ -951,7 +963,9 @@ class HybridClassifier:
                         extra={"llm_fallback": True, "reason": "no_llm_available"},
                     )
             else:
-                self._update_status("Classifiers disagree - invoking LLM...")
+                self._update_status(
+                    "Classifiers disagree - invoking LLM...", email_idx, total_emails
+                )
                 if self.workflow_logger:
                     self.workflow_logger.log_step(
                         email_idx, "agreement_check", path="llm_assisted"
@@ -960,7 +974,9 @@ class HybridClassifier:
                 # Invoke LLM with timing
                 start_time = time.perf_counter()
                 try:
-                    self._update_status("LLM called - waiting for response...")
+                    self._update_status(
+                        "LLM called - waiting for response...", email_idx, total_emails
+                    )
                     result3 = self.llm_classifier.classify(email)
                     elapsed_ms = (time.perf_counter() - start_time) * 1000
 
@@ -977,7 +993,9 @@ class HybridClassifier:
                     final_domain = result3.domain or "unsure"
 
                     self._update_status(
-                        f"LLM responded in {elapsed_ms:.0f}ms - classified as '{final_domain}'"
+                        f"LLM responded ({elapsed_ms:.0f}ms) - '{final_domain}'",
+                        email_idx,
+                        total_emails,
                     )
                     if self.workflow_logger:
                         self.workflow_logger.log_step(
@@ -1049,11 +1067,11 @@ class HybridClassifier:
             return "unsure"
 
     def classify_dict(
-        self, email_dict: dict[str, Any], email_idx: int = 0
+        self, email_dict: dict[str, Any], email_idx: int = 0, total_emails: int = 0
     ) -> tuple[str, dict[str, Any]]:
         """Classify email from dictionary input."""
         email = EmailData.from_dict(email_dict)
-        return self.classify(email, email_idx)
+        return self.classify(email, email_idx, total_emails)
 
     def get_stats(self) -> HybridWorkflowStats:
         """Get current workflow statistics."""
