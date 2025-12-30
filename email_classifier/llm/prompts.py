@@ -57,7 +57,7 @@ def get_domain_list_for_prompt() -> str:
     for domain_name, profile in DOMAINS.items():
         description = DOMAIN_DESCRIPTIONS.get(domain_name, profile.display_name)
         lines.append(f"- **{domain_name}**: {description}")
-    lines.append('- **unsure**: Use when the email does not clearly match any domain')
+    lines.append("- **unsure**: Use when the email does not clearly match any domain")
     return "\n".join(lines)
 
 

@@ -82,6 +82,8 @@ jobs:
 
     - name: Setup Pages
       uses: actions/configure-pages@v5
+      with:
+        enablement: true
 
     - name: Upload to GitHub Pages
       uses: actions/upload-pages-artifact@v4
@@ -116,7 +118,7 @@ jobs:
 
     - name: Check documentation style
       run: |
-        doc8 docs/ --max-line-length 88
+        doc8 docs/ --max-line-length 88 --ignore-path docs/_build
 
     - name: Check for broken links
       run: |

@@ -178,9 +178,7 @@ class LLMConfig:
         retry_count = _parse_int(os.getenv("LLM_RETRY_COUNT", ""), 2)
 
         # Parse Ollama settings
-        ollama_base_url = os.getenv(
-            "OLLAMA_BASE_URL", "http://localhost:11434"
-        ).strip()
+        ollama_base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").strip()
 
         # Parse weight settings
         llm_weight = _parse_float(os.getenv("LLM_WEIGHT", ""), 0.40)

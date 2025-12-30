@@ -91,15 +91,20 @@ class TestLLMConfig:
                 max_tokens=0,
             )
 
-    @patch.dict(os.environ, {
-        "LLM_PROVIDER": "ollama",
-        "LLM_MODEL": "llama3.2",
-        "LLM_TEMPERATURE": "0.5",
-        "LLM_WEIGHT": "0.4",
-        "KEYWORD_WEIGHT": "0.35",
-        "STRUCTURAL_WEIGHT": "0.25",
-    }, clear=True)
-    def test_from_env(self):
+    @patch("email_classifier.llm.config.load_dotenv")
+    @patch.dict(
+        os.environ,
+        {
+            "LLM_PROVIDER": "ollama",
+            "LLM_MODEL": "llama3.2",
+            "LLM_TEMPERATURE": "0.5",
+            "LLM_WEIGHT": "0.4",
+            "KEYWORD_WEIGHT": "0.35",
+            "STRUCTURAL_WEIGHT": "0.25",
+        },
+        clear=True,
+    )
+    def test_from_env(self, mock_load_dotenv):
         """Test loading configuration from environment."""
         config = LLMConfig.from_env()
         assert config.provider == LLMProvider.OLLAMA
@@ -108,10 +113,15 @@ class TestLLMConfig:
         # Weights sum to 1.0, so no normalization needed
         assert config.llm_weight == 0.4
 
-    @patch.dict(os.environ, {
-        "LLM_PROVIDER": "invalid",
-    }, clear=True)
-    def test_from_env_invalid_provider(self):
+    @patch("email_classifier.llm.config.load_dotenv")
+    @patch.dict(
+        os.environ,
+        {
+            "LLM_PROVIDER": "invalid",
+        },
+        clear=True,
+    )
+    def test_from_env_invalid_provider(self, mock_load_dotenv):
         """Test error on invalid provider."""
         with pytest.raises(LLMConfigError, match="Invalid LLM_PROVIDER"):
             LLMConfig.from_env()
@@ -178,53 +188,78 @@ class TestLLMConfig:
                 retry_count=-1,
             )
 
-    @patch.dict(os.environ, {
-        "LLM_PROVIDER": "google",
-        "GOOGLE_API_KEY": "test-key-123",
-    }, clear=True)
-    def test_from_env_google(self):
+    @patch("email_classifier.llm.config.load_dotenv")
+    @patch.dict(
+        os.environ,
+        {
+            "LLM_PROVIDER": "google",
+            "GOOGLE_API_KEY": "test-key-123",
+        },
+        clear=True,
+    )
+    def test_from_env_google(self, mock_load_dotenv):
         """Test loading Google config from environment."""
         config = LLMConfig.from_env()
         assert config.provider == LLMProvider.GOOGLE
         assert config.api_key == "test-key-123"
         assert config.model == "gemini-2.0-flash"  # Default
 
-    @patch.dict(os.environ, {
-        "LLM_PROVIDER": "mistral",
-        "MISTRAL_API_KEY": "test-mistral-key",
-        "LLM_MODEL": "custom-model",
-    }, clear=True)
-    def test_from_env_mistral_custom_model(self):
+    @patch("email_classifier.llm.config.load_dotenv")
+    @patch.dict(
+        os.environ,
+        {
+            "LLM_PROVIDER": "mistral",
+            "MISTRAL_API_KEY": "test-mistral-key",
+            "LLM_MODEL": "custom-model",
+        },
+        clear=True,
+    )
+    def test_from_env_mistral_custom_model(self, mock_load_dotenv):
         """Test loading Mistral config with custom model."""
         config = LLMConfig.from_env()
         assert config.provider == LLMProvider.MISTRAL
         assert config.model == "custom-model"
 
-    @patch.dict(os.environ, {
-        "LLM_PROVIDER": "ollama",
-        "OLLAMA_BASE_URL": "http://custom:11434",
-    }, clear=True)
-    def test_from_env_ollama_custom_url(self):
+    @patch("email_classifier.llm.config.load_dotenv")
+    @patch.dict(
+        os.environ,
+        {
+            "LLM_PROVIDER": "ollama",
+            "OLLAMA_BASE_URL": "http://custom:11434",
+        },
+        clear=True,
+    )
+    def test_from_env_ollama_custom_url(self, mock_load_dotenv):
         """Test loading Ollama config with custom base URL."""
         config = LLMConfig.from_env()
         assert config.provider == LLMProvider.OLLAMA
         assert config.ollama_base_url == "http://custom:11434"
 
-    @patch.dict(os.environ, {
-        "LLM_PROVIDER": "openrouter",
-        "OPENROUTER_API_KEY": "test-key",
-    }, clear=True)
-    def test_from_env_openrouter_requires_model(self):
+    @patch("email_classifier.llm.config.load_dotenv")
+    @patch.dict(
+        os.environ,
+        {
+            "LLM_PROVIDER": "openrouter",
+            "OPENROUTER_API_KEY": "test-key",
+        },
+        clear=True,
+    )
+    def test_from_env_openrouter_requires_model(self, mock_load_dotenv):
         """Test OpenRouter requires explicit model."""
         with pytest.raises(LLMConfigError, match="requires an explicit model"):
             LLMConfig.from_env()
 
-    @patch.dict(os.environ, {
-        "LLM_PROVIDER": "openrouter",
-        "OPENROUTER_API_KEY": "test-key",
-        "LLM_MODEL": "anthropic/claude-3-sonnet",
-    }, clear=True)
-    def test_from_env_openrouter_with_model(self):
+    @patch("email_classifier.llm.config.load_dotenv")
+    @patch.dict(
+        os.environ,
+        {
+            "LLM_PROVIDER": "openrouter",
+            "OPENROUTER_API_KEY": "test-key",
+            "LLM_MODEL": "anthropic/claude-3-sonnet",
+        },
+        clear=True,
+    )
+    def test_from_env_openrouter_with_model(self, mock_load_dotenv):
         """Test OpenRouter with explicit model works."""
         config = LLMConfig.from_env()
         assert config.provider == LLMProvider.OPENROUTER
@@ -422,7 +457,10 @@ class TestLLMClassifierUnit:
 
         assert classifier._normalize_domain_name("telecom") == "telecommunications"
         assert classifier._normalize_domain_name("telco") == "telecommunications"
-        assert classifier._normalize_domain_name("telecommunications") == "telecommunications"
+        assert (
+            classifier._normalize_domain_name("telecommunications")
+            == "telecommunications"
+        )
 
     def test_normalize_domain_name_social_variations(self):
         """Test social media domain name normalization."""
@@ -840,8 +878,8 @@ class TestLLMProvidersFactory:
 
     def test_create_llm_unknown_provider(self):
         """Test create_llm with invalid provider raises error."""
-        from email_classifier.llm.providers import create_llm
         from email_classifier.llm.config import LLMConfigError
+        from email_classifier.llm.providers import create_llm
 
         # Create a mock config with invalid provider
         config = MagicMock()

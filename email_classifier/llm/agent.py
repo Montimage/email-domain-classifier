@@ -114,7 +114,9 @@ class LLMClassifier:
         # Should not reach here, but handle gracefully
         raise last_error or Exception("LLM invocation failed")
 
-    def _validate_result(self, result: LLMClassificationResult) -> LLMClassificationResult:
+    def _validate_result(
+        self, result: LLMClassificationResult
+    ) -> LLMClassificationResult:
         """Validate and normalize the LLM result.
 
         Args:

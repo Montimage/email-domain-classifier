@@ -517,9 +517,15 @@ class TestStructuralTemplateClassifier:
             "has_url": True,
             "formality": "semi-formal",
             "paragraph_count": 3,
-            "sender": {"domain_type": "unknown", "is_noreply": False, "has_department": False},
+            "sender": {
+                "domain_type": "unknown",
+                "is_noreply": False,
+                "has_department": False,
+            },
         }
-        score, details = classifier._score_template_match(features, DOMAINS["technology"])
+        score, details = classifier._score_template_match(
+            features, DOMAINS["technology"]
+        )
         assert details["body_length"] == "match"
 
     def test_score_template_body_length_partial(self):
@@ -533,9 +539,15 @@ class TestStructuralTemplateClassifier:
             "has_url": True,
             "formality": "semi-formal",
             "paragraph_count": 2,
-            "sender": {"domain_type": "unknown", "is_noreply": False, "has_department": False},
+            "sender": {
+                "domain_type": "unknown",
+                "is_noreply": False,
+                "has_department": False,
+            },
         }
-        score, details = classifier._score_template_match(features, DOMAINS["technology"])
+        score, details = classifier._score_template_match(
+            features, DOMAINS["technology"]
+        )
         assert details["body_length"] == "partial"
 
     def test_score_template_body_length_mismatch(self):
@@ -549,9 +561,15 @@ class TestStructuralTemplateClassifier:
             "has_url": True,
             "formality": "semi-formal",
             "paragraph_count": 1,
-            "sender": {"domain_type": "unknown", "is_noreply": False, "has_department": False},
+            "sender": {
+                "domain_type": "unknown",
+                "is_noreply": False,
+                "has_department": False,
+            },
         }
-        score, details = classifier._score_template_match(features, DOMAINS["technology"])
+        score, details = classifier._score_template_match(
+            features, DOMAINS["technology"]
+        )
         assert details["body_length"] == "mismatch"
 
     def test_score_template_formality_mismatch(self):
@@ -565,7 +583,11 @@ class TestStructuralTemplateClassifier:
             "has_url": True,
             "formality": "casual",  # Finance expects formal
             "paragraph_count": 3,
-            "sender": {"domain_type": "unknown", "is_noreply": False, "has_department": False},
+            "sender": {
+                "domain_type": "unknown",
+                "is_noreply": False,
+                "has_department": False,
+            },
         }
         score, details = classifier._score_template_match(features, DOMAINS["finance"])
         assert details["formality"] == "mismatch"
@@ -581,9 +603,15 @@ class TestStructuralTemplateClassifier:
             "has_url": True,
             "formality": "semi-formal",
             "paragraph_count": 2,
-            "sender": {"domain_type": "unknown", "is_noreply": True, "has_department": False},
+            "sender": {
+                "domain_type": "unknown",
+                "is_noreply": True,
+                "has_department": False,
+            },
         }
-        score, details = classifier._score_template_match(features, DOMAINS["technology"])
+        score, details = classifier._score_template_match(
+            features, DOMAINS["technology"]
+        )
         assert details["sender"] == "noreply_match"
 
     def test_classify_zero_total_scores(self):

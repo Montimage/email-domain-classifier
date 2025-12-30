@@ -25,9 +25,7 @@ class LLMClassificationResult(BaseModel):
     classifications: list[DomainClassification] = Field(
         description="List of domain classifications ordered by confidence (highest first)"
     )
-    primary_domain: str = Field(
-        description="The most confident domain classification"
-    )
+    primary_domain: str = Field(description="The most confident domain classification")
     analysis: str = Field(
         description="Brief analysis of the email content and classification reasoning"
     )
@@ -51,7 +49,9 @@ class LLMClassificationResult(BaseModel):
         return self.classifications[0].confidence
 
     @classmethod
-    def unsure(cls, reason: str = "Could not classify email") -> "LLMClassificationResult":
+    def unsure(
+        cls, reason: str = "Could not classify email"
+    ) -> "LLMClassificationResult":
         """Create an 'unsure' result for fallback cases.
 
         Args:

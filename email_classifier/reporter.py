@@ -495,15 +495,15 @@ class ClassificationReporter:
             lines.append("  HYBRID WORKFLOW STATISTICS")
             lines.append("─" * 80)
             hybrid = report["hybrid_workflow"]
-            lines.append(
-                f"  Total Processed (Hybrid): {hybrid['total_processed']:,}"
-            )
+            lines.append(f"  Total Processed (Hybrid): {hybrid['total_processed']:,}")
             lines.append(
                 f"  Classic Agreement Count:  {hybrid['classic_agreement_count']:,}"
             )
             lines.append(f"  Agreement Rate:           {hybrid['agreement_rate']}%")
             lines.append(f"  LLM Calls Made:           {hybrid['llm_call_count']:,}")
-            lines.append(f"  LLM Savings:              {hybrid['llm_savings_percent']}%")
+            lines.append(
+                f"  LLM Savings:              {hybrid['llm_savings_percent']}%"
+            )
             if hybrid["llm_call_count"] > 0:
                 lines.append(
                     f"  LLM Total Time:           {hybrid['llm_total_time_ms']:.0f}ms"

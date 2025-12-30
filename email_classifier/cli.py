@@ -17,8 +17,8 @@ import argparse
 import json
 import logging
 import sys
-from pathlib import Path
 from collections.abc import Callable
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
 
 from dotenv import load_dotenv
@@ -505,7 +505,9 @@ def cmd_classify(args: argparse.Namespace) -> int:
                         if current_hybrid_status:
                             display_status = f"{status} | {current_hybrid_status}"
                         progress.update(
-                            task_id, completed=current, description=f"[cyan]{display_status}"
+                            task_id,
+                            completed=current,
+                            description=f"[cyan]{display_status}",
                         )
 
             def hybrid_status_update(message: str) -> None:

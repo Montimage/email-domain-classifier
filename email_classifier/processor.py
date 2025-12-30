@@ -508,7 +508,9 @@ class StreamingProcessor:
                     normalized_row = self._normalize_row(email_dict)
 
                     # Classify email (use different call for hybrid classifier)
-                    if self.use_hybrid and isinstance(self.classifier, HybridClassifier):
+                    if self.use_hybrid and isinstance(
+                        self.classifier, HybridClassifier
+                    ):
                         domain, details = self.classifier.classify_dict(
                             normalized_row, email_idx=idx, total_emails=total_rows
                         )
@@ -622,7 +624,9 @@ class StreamingProcessor:
         if self.use_hybrid and isinstance(self.classifier, HybridClassifier):
             hybrid_stats = self.classifier.get_stats()
             self.stats.hybrid_workflow.llm_call_count = hybrid_stats.llm_call_count
-            self.stats.hybrid_workflow.llm_total_time_ms = hybrid_stats.llm_total_time_ms
+            self.stats.hybrid_workflow.llm_total_time_ms = (
+                hybrid_stats.llm_total_time_ms
+            )
             self.stats.hybrid_workflow.classic_agreement_count = (
                 hybrid_stats.classic_agreement_count
             )
