@@ -32,14 +32,14 @@ from .ui import RICH_AVAILABLE, StatusBar, get_ui
 
 if TYPE_CHECKING:
     from .llm import LLMConfig
-    from .ui import TerminalUI
+    from .ui import SimpleUI, TerminalUI
 
 
 def verify_prerequisites(
     input_path: Path,
     output_dir: Path,
     use_llm: bool,
-    ui: "TerminalUI",
+    ui: "TerminalUI | SimpleUI",
     quiet: bool = False,
 ) -> tuple[bool, list[str], Optional["LLMConfig"]]:
     """Verify all prerequisites before starting analysis.

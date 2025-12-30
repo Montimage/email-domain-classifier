@@ -81,16 +81,18 @@ jobs:
         path: docs/_build/html/
 
     - name: Setup Pages
+      id: pages
       uses: actions/configure-pages@v5
-      with:
-        enablement: true
+      continue-on-error: true
 
     - name: Upload to GitHub Pages
+      if: steps.pages.outcome == 'success'
       uses: actions/upload-pages-artifact@v4
       with:
         path: docs/_build/html/
 
     - name: Deploy to GitHub Pages
+      if: steps.pages.outcome == 'success'
       id: deployment
       uses: actions/deploy-pages@v4
 
@@ -122,7 +124,6 @@ jobs:
 
     - name: Check for broken links
       run: |
-        pip install sphinx.ext.doctest
         cd docs
         sphinx-build -b linkcheck . _build/linkcheck || true
 

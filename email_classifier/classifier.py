@@ -986,7 +986,7 @@ class HybridClassifier:
 
         if classifiers_agree:
             # Both classifiers agree - skip LLM
-            final_domain = result1.domain  # type: ignore[assignment]
+            final_domain = result1.domain
             self.stats.classic_agreement_count += 1
             details["path"] = "classic_only"
             details["agreement"] = True
@@ -1088,9 +1088,11 @@ class HybridClassifier:
         email_elapsed_ms = (time.perf_counter() - email_start_time) * 1000
         self.stats.total_processing_time_ms += email_elapsed_ms
 
-        details["final_domain"] = final_domain
+        # Ensure we always return a valid domain string
+        final_result = final_domain if final_domain is not None else "unsure"
+        details["final_domain"] = final_result
         details["processing_time_ms"] = round(email_elapsed_ms, 2)
-        return final_domain, details
+        return final_result, details
 
     def _fallback_classification(
         self,

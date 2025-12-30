@@ -221,7 +221,7 @@ class LLMClassifier:
                 scores[classification.domain] = classification.confidence
 
         # Get primary domain and confidence
-        domain = llm_result.primary_domain
+        domain: Optional[str] = llm_result.primary_domain
         confidence = llm_result.get_highest_confidence()
 
         # If primary domain is unsure, set domain to None for consistency

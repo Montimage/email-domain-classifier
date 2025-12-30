@@ -127,6 +127,24 @@ warn_no_return = true
 warn_unreachable = true
 strict_equality = true
 
+# Ignore missing imports for optional LLM provider packages
+[[tool.mypy.overrides]]
+module = [
+    "langchain_google_genai",
+    "langchain_google_genai.*",
+    "langchain_mistralai",
+    "langchain_mistralai.*",
+    "langchain_ollama",
+    "langchain_ollama.*",
+    "langchain_groq",
+    "langchain_groq.*",
+    "langchain_openai",
+    "langchain_openai.*",
+    "httpx",
+    "httpx.*",
+]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
